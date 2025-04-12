@@ -123,7 +123,7 @@ realms:
       type: constant
       value: 9.0e-06
     target_name: fluid-hex
-  mesh: ../grids/ffa_w3_211_32.exo
+  mesh: ../grids/ffa_w3_211_near_body_aoa_30.exo
   name: realm_1
   output:
     output_data_base_name: results/ffa_w3_211_32_sst.e

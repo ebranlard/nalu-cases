@@ -1,2 +1,16 @@
 *.e
+*.e.*
+*.rst.*
 *.exo
+
+_*
+
+!_setup/
+
+results*
+restart*
+
+*.log
+slurm-*
+
+*.out
