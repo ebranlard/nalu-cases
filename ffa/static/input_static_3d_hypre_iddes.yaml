@@ -1,10 +1,11 @@
-# taken from Shreyas email
-# Uses hypre  solver solve_mom, solve_scalar, solve_elliptic
+# hypre 
+# solve_mom, solve_scalar, solve_elliptic
 # sst_iddes
 Simulations:
 - name: sim1
   optimizer: opt1
   time_integrator: ti_1
+
 Time_Integrators:
 - StandardTimeIntegrator:
     name: ti_1
@@ -17,14 +18,14 @@ Time_Integrators:
     time_step_count: 0
     time_stepping_type: fixed
 hypre_config:
-  umpire_device_pool_mbs:4096
-  use_vendor_spgemm:1
-  use_vendor_spmv:0
-  use_vendor_sptrans:0
+  umpire_device_pool_mbs: 4096
+  use_vendor_spgemm: 1
+  use_vendor_spmv: 0
+  use_vendor_sptrans: 0
 linear_solvers:
 # solve_mom
 - dump_hypre_matrix_stats: false
-  hypre_cfg_file: ../hypre_file_static.yaml
+  hypre_cfg_file: /projects/hfm/sbidadi/nrel_phase_vi/input_files/hypre_file.yaml
   hypre_cfg_node: hypre_simple_precon
   kspace: 1000
   max_iterations: 1000
@@ -42,7 +43,7 @@ linear_solvers:
   write_matrix_files: false
 # solve_scalar  
 - dump_hypre_matrix_stats: false
-  hypre_cfg_file: ../hypre_file_static.yaml
+  hypre_cfg_file: /projects/hfm/sbidadi/nrel_phase_vi/input_files/hypre_file.yaml
   hypre_cfg_node: hypre_simple_precon
   kspace: 1000
   max_iterations: 1000
@@ -57,9 +58,9 @@ linear_solvers:
   tolerance: 1e-5
   type: hypre
   write_matrix_files: false
-# solve_elliptic
+# Solve elliptic  
 - dump_hypre_matrix_stats: false
-  hypre_cfg_file: ../hypre_file_static.yaml
+  hypre_cfg_file: /projects/hfm/sbidadi/nrel_phase_vi/input_files/hypre_file.yaml
   hypre_cfg_node: hypre_elliptic
   kspace: 1000
   max_iterations: 1000
@@ -197,7 +198,7 @@ realms:
     physics: surface_force_and_moment
     target_name:
     - wing-pp
-    type: surface  
+    type: surface
   - frequency: 1
     output_file_name: _forces.dat
     parameters:

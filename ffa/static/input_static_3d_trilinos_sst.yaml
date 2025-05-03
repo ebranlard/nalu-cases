@@ -1,10 +1,11 @@
-# taken from Shreyas email
-# Uses hypre  solver solve_mom, solve_scalar, solve_elliptic
-# sst_iddes
+# tpetra 
+# solve_scalar, solve_cont
+# sst
 Simulations:
 - name: sim1
   optimizer: opt1
   time_integrator: ti_1
+
 Time_Integrators:
 - StandardTimeIntegrator:
     name: ti_1
@@ -12,71 +13,33 @@ Time_Integrators:
     - realm_1
     second_order_accuracy: true
     start_time: 0
-    termination_step_count: 16000
-    time_step: 0.000133333
+    termination_step_count: 1001
+    time_step: 0.0002667
     time_step_count: 0
     time_stepping_type: fixed
-hypre_config:
-  umpire_device_pool_mbs:4096
-  use_vendor_spgemm:1
-  use_vendor_spmv:0
-  use_vendor_sptrans:0
 linear_solvers:
-# solve_mom
-- dump_hypre_matrix_stats: false
-  hypre_cfg_file: ../hypre_file_static.yaml
-  hypre_cfg_node: hypre_simple_precon
-  kspace: 1000
-  max_iterations: 1000
-  method: hypre_gmres
-  name: solve_mom
-  output_level: 0
-  preconditioner: boomerAMG
-  recompute_preconditioner_frequency: 1
-  reuse_linear_system: true
-  segregated_solver: true
-  simple_hypre_matrix_assemble: true
-  sync_alg: 1
-  tolerance: 1e-5
-  type: hypre
-  write_matrix_files: false
-# solve_scalar  
-- dump_hypre_matrix_stats: false
-  hypre_cfg_file: ../hypre_file_static.yaml
-  hypre_cfg_node: hypre_simple_precon
-  kspace: 1000
-  max_iterations: 1000
-  method: hypre_gmres
+- kspace: 200 
+  max_iterations: 200 
+  method: gmres
   name: solve_scalar
   output_level: 0
-  preconditioner: boomerAMG
-  recompute_preconditioner_frequency: 1
-  reuse_linear_system: true
-  simple_hypre_matrix_assemble: true
-  sync_alg: 1
+  preconditioner: riluk
   tolerance: 1e-5
-  type: hypre
-  write_matrix_files: false
-# solve_elliptic
-- dump_hypre_matrix_stats: false
-  hypre_cfg_file: ../hypre_file_static.yaml
-  hypre_cfg_node: hypre_elliptic
-  kspace: 1000
-  max_iterations: 1000
+  type: tpetra
+- absolute_tolerance: 1.0e-08
+  bamg_coarsen_type: 8
+  bamg_cycle_type: 1
+  bamg_interp_type: 6
+  kspace: 75
+  max_iterations: 50
   method: hypre_gmres
-  name: solve_elliptic
+  name: solve_cont
   output_level: 0
   preconditioner: boomerAMG
-  recompute_preconditioner_frequency: 1
-  reuse_linear_system: true
-  simple_hypre_matrix_assemble: true
-  sync_alg: 1
   tolerance: 1e-5
   type: hypre
-  write_matrix_files: false
 realms:
-- automatic_decomposition_type: rcb
-  boundary_conditions:
+- boundary_conditions:
   - target_name: wing
     wall_boundary_condition: bc_wing
     wall_user_data:
@@ -121,16 +84,15 @@ realms:
     - front
     - back
   check_for_missing_bcs: true
-  check_jacobians: true
   equation_systems:
     max_iterations: 4
     name: theEqSys
     solver_system_specification:
-      ndtw: solve_elliptic
-      pressure: solve_elliptic
+      ndtw: solve_cont
+      pressure: solve_cont
       specific_dissipation_rate: solve_scalar
       turbulent_ke: solve_scalar
-      velocity: solve_mom
+      velocity: solve_scalar
     systems:
     - WallDistance:
         convergence_tolerance: 1.0e-08
@@ -187,17 +149,7 @@ realms:
     - q_criterion
     - vorticity
     - assembled_area_force_moment
-    - reynolds_stress
   post_processing:
-  - frequency: 1
-    output_file_name: _forces_pp.dat
-    parameters:
-    - 0
-    - 0
-    physics: surface_force_and_moment
-    target_name:
-    - wing-pp
-    type: surface  
   - frequency: 1
     output_file_name: _forces.dat
     parameters:
@@ -208,22 +160,9 @@ realms:
     - wing
     - wing-pp
     type: surface
-  rebalance_mesh: true
   restart:
     restart_data_base_name: restart/output.rst
     restart_frequency: 500
-  sideset_writers:
-  - name: boundary_output
-    output_data_base_name: sideset/result.exo
-    output_frequency: 100
-    output_variables:
-    - pressure
-    - pressure_force
-    - viscous_force
-    - tau_wall
-    target_name:
-    - wing
-    - wing-pp
   solution_options:
     name: myOptions
     options:
@@ -241,8 +180,6 @@ realms:
         velocity: 1.0
     - limiter:
         pressure: true
-        specific_dissipation_rate: true
-        turbulent_ke: true
         velocity: true
     - noc_correction:
         pressure: true
@@ -260,13 +197,10 @@ realms:
     - turbulence_model_constants:
         SDRWallFactor: 0.625
     projected_timescale_type: momentum_diag_inv
-    turbulence_model: sst_iddes
-  stk_rebalance_method: parmetis
+    turbulence_model: sst
   turbulence_averaging:
     specifications:
     - compute_q_criterion: true
-      compute_reynolds_stress: true
-      compute_tke: true
       compute_vorticity: true
       name: one
       target_name:
