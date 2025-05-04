@@ -1,7 +1,17 @@
+# -*- mode: yaml -*-
+#
+# 2-D RANS (k-omega SST) simulation of DU-91-W2-225 airfoil
+#
+# U = 15 m/s; aoa = 4 deg; Re = 2.0e6
+#
+# tpetra 
+# solve_scalar, solve_cont
+# sst
+velocity_value: &vel [75.000000, 0.000000]
 Simulations:
-- name: sim1
-  optimizer: opt1
-  time_integrator: ti_1
+  - name: sim1
+    optimizer: opt1
+    time_integrator: ti_1
 
 Time_Integrators:
 - StandardTimeIntegrator:
@@ -10,77 +20,63 @@ Time_Integrators:
     - realm_1
     second_order_accuracy: true
     start_time: 0
-    termination_step_count: 1001
-    time_step: 0.0002667
+    termination_step_count: 16000
+    time_step: 0.000133333
     time_step_count: 0
     time_stepping_type: fixed
+
 linear_solvers:
-- kspace: 200 
-  max_iterations: 200 
-  method: gmres
-  name: solve_scalar
-  output_level: 0
-  preconditioner: riluk
-  tolerance: 1e-5
-  type: tpetra
-- absolute_tolerance: 1.0e-08
-  bamg_coarsen_type: 8
-  bamg_cycle_type: 1
-  bamg_interp_type: 6
-  kspace: 75
-  max_iterations: 50
-  method: hypre_gmres
-  name: solve_cont
-  output_level: 0
-  preconditioner: boomerAMG
-  tolerance: 1e-5
-  type: hypre
+# solve_scalar
+  - kspace: 200 
+    max_iterations: 200 
+    method: gmres
+    name: solve_scalar
+    output_level: 0
+    preconditioner: riluk
+    tolerance: 1e-5
+    type: tpetra
+
+  - absolute_tolerance: 1.0e-08
+    bamg_coarsen_type: 8
+    bamg_cycle_type: 1
+    bamg_interp_type: 6
+    kspace: 75
+    max_iterations: 50
+    method: hypre_gmres
+    name: solve_cont
+    output_level: 0
+    preconditioner: boomerAMG
+    tolerance: 1e-5
+    type: hypre
+
 realms:
 - boundary_conditions:
-  - wall_boundary_condition: bc_wing
-    target_name: wing
+  - target_name: wing
+    wall_boundary_condition: bc_wall
     wall_user_data:
       turbulent_ke: 0.0
       use_wall_function: false
-      velocity:
-      - 0
-      - 0
-      - 0
-  - wall_boundary_condition: bc_wing_pp
-    target_name: wing-pp
-    wall_user_data:
-      turbulent_ke: 0.0
-      use_wall_function: false
-      velocity:
-      - 0
-      - 0
-      - 0
+      velocity: [0,0]
+
   - inflow_boundary_condition: bc_inflow
-    target_name: inlet
     inflow_user_data:
       specific_dissipation_rate: 919.3455
       turbulent_ke: 0.0010422
-      velocity:
-      - 0.75
-      - 0.0
-      - 0.0
+      velocity: *vel
+    target_name: inlet
+
   - open_boundary_condition: bc_open
-    target_name: outlet
     open_user_data:
       pressure: 0.0
       specific_dissipation_rate: 919.3455
       turbulent_ke: 0.0010422
-      velocity:
-      - 0.0
-      - 0.0
-      - 0.0
-  - periodic_boundary_condition: bc_front_back
-    periodic_user_data:
-      search_tolerance: 0.0001
-    target_name:
-    - front
-    - back
+      velocity: [0,0]
+    target_name: outlet
+
+
   check_for_missing_bcs: true
+  check_jacobians: true
+# System
   equation_systems:
     max_iterations: 4
     name: theEqSys
@@ -103,17 +99,16 @@ realms:
         convergence_tolerance: 1.0e-08
         max_iterations: 1
         name: mySST
+# Initial conditions
   initial_conditions:
   - constant: ic_1
-    target_name: fluid-hex
+    target_name: fluid-quad
     value:
       pressure: 0
       specific_dissipation_rate: 919.3455
       turbulent_ke: 0.0010422
-      velocity:
-      - 0.75 # <<<<<<<<
-      - 0.0
-      - 0.0
+      velocity: *vel
+# Material
   material_properties:
     specifications:
     - name: density
@@ -122,44 +117,45 @@ realms:
     - name: viscosity
       type: constant
       value: 9.0e-06
-    target_name: fluid-hex
-  mesh: ../grids/S809_Re=100k_AoA0_nSpan=24_lfac10.exo
+    target_name: fluid-quad
+# Mesh
+  mesh: ../grids/ffa_w3_211_near_body_aoa_30_quads.exo
   name: realm_1
+# Outputs
   output:
-    output_data_base_name: results/base_0.e
-    output_frequency: 50
+    output_data_base_name: results/output_2d_trilinos.e
+    output_frequency: 5
     output_node_set: false
     output_variables:
     - velocity
-      #    - density
+    #    - density
     - pressure
-    - pressure_force
-    - viscous_force
-      #- tau_wall_vector
-    - tau_wall
+    #    - pressure_force
+    #    - viscous_force
+    #    - tau_wall_vector
+    #    - tau_wall
     - turbulent_ke
-      #- specific_dissipation_rate
-      #- minimum_distance_to_wall
-      #- sst_f_one_blending
-      #- turbulent_viscosity
-      #- element_courant
-      #- q_criterion
-    - vorticity
-      #- assembled_area_force_moment
+    #    - specific_dissipation_rate
+    #    - minimum_distance_to_wall
+    #    - sst_f_one_blending
+    #    - turbulent_viscosity
+    #    - element_courant
+    #    - q_criterion
+    #    - vorticity
+    #    - assembled_area_force_moment
+    #    - reynolds_stress
   post_processing:
   - frequency: 1
-    output_file_name: forces_0.dat
-    parameters:
-    - 0
-    - 0
+    output_file_name: _forces_2d_trilinos.dat
+    parameters: [0,0]
     physics: surface_force_and_moment
-    target_name:
+    target_name: 
     - wing
-    - wing-pp
     type: surface
+  rebalance_mesh: true
   restart:
-    restart_data_base_name: restart/base_0.rst
-    restart_frequency: 500
+    restart_data_base_name: restart/output_2d_trilinos.rst
+    restart_frequency: 1000
   solution_options:
     name: myOptions
     options:
@@ -195,12 +191,13 @@ realms:
         SDRWallFactor: 0.625
     projected_timescale_type: momentum_diag_inv
     turbulence_model: sst
+  stk_rebalance_method: parmetis
   turbulence_averaging:
     specifications:
     - compute_q_criterion: true
       compute_vorticity: true
       name: one
       target_name:
-      - fluid-hex
+      - fluid-quad
     time_filter_interval: 100000.0
   use_edges: true

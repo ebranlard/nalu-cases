@@ -1,6 +1,8 @@
+# Adapted from Shreyas email
 # hypre 
 # solve_mom, solve_scalar, solve_elliptic
 # sst_iddes
+velocity_value: &vel [75.000000, 0.000000, 0.000000]
 Simulations:
 - name: sim1
   optimizer: opt1
@@ -25,7 +27,7 @@ hypre_config:
 linear_solvers:
 # solve_mom
 - dump_hypre_matrix_stats: false
-  hypre_cfg_file: /projects/hfm/sbidadi/nrel_phase_vi/input_files/hypre_file.yaml
+  hypre_cfg_file: ../../hypre_file.yaml
   hypre_cfg_node: hypre_simple_precon
   kspace: 1000
   max_iterations: 1000
@@ -43,7 +45,7 @@ linear_solvers:
   write_matrix_files: false
 # solve_scalar  
 - dump_hypre_matrix_stats: false
-  hypre_cfg_file: /projects/hfm/sbidadi/nrel_phase_vi/input_files/hypre_file.yaml
+  hypre_cfg_file: ../../hypre_file.yaml
   hypre_cfg_node: hypre_simple_precon
   kspace: 1000
   max_iterations: 1000
@@ -58,9 +60,9 @@ linear_solvers:
   tolerance: 1e-5
   type: hypre
   write_matrix_files: false
-# Solve elliptic  
+# solve_elliptic
 - dump_hypre_matrix_stats: false
-  hypre_cfg_file: /projects/hfm/sbidadi/nrel_phase_vi/input_files/hypre_file.yaml
+  hypre_cfg_file: ../../hypre_file.yaml
   hypre_cfg_node: hypre_elliptic
   kspace: 1000
   max_iterations: 1000
@@ -83,38 +85,30 @@ realms:
     wall_user_data:
       turbulent_ke: 0.0
       use_wall_function: false
-      velocity:
-      - 0
-      - 0
-      - 0
+      velocity: [0,0,0]
+
   - target_name: wing-pp
     wall_boundary_condition: bc_wing_pp
     wall_user_data:
       turbulent_ke: 0.0
       use_wall_function: false
-      velocity:
-      - 0
-      - 0
-      - 0
+      velocity: [0,0,0]
+
   - inflow_boundary_condition: bc_inflow
     inflow_user_data:
       specific_dissipation_rate: 919.3455
       turbulent_ke: 0.0010422
-      velocity:
-      - 75.0
-      - 0.0
-      - 0.0
+      velocity: *vel
     target_name: inlet
+
   - open_boundary_condition: bc_open
     open_user_data:
       pressure: 0.0
       specific_dissipation_rate: 919.3455
       turbulent_ke: 0.0010422
-      velocity:
-      - 0.0
-      - 0.0
-      - 0.0
+      velocity: [0,0,0]
     target_name: outlet
+
   - periodic_boundary_condition: bc_front_back
     periodic_user_data:
       search_tolerance: 0.0001
@@ -123,6 +117,7 @@ realms:
     - back
   check_for_missing_bcs: true
   check_jacobians: true
+# System
   equation_systems:
     max_iterations: 4
     name: theEqSys
@@ -145,6 +140,7 @@ realms:
         convergence_tolerance: 1.0e-08
         max_iterations: 1
         name: mySST
+# Initial conditions
   initial_conditions:
   - constant: ic_1
     target_name: fluid-hex
@@ -152,10 +148,8 @@ realms:
       pressure: 0
       specific_dissipation_rate: 919.3455
       turbulent_ke: 0.0010422
-      velocity:
-      - 75.0
-      - 0.0
-      - 0.0
+      velocity: *vel
+# Material
   material_properties:
     specifications:
     - name: density
@@ -165,45 +159,43 @@ realms:
       type: constant
       value: 9.0e-06
     target_name: fluid-hex
+# Mesh
   mesh: ../grids/ffa_w3_211_near_body_aoa_30.exo
   name: realm_1
+# Outputs
   output:
     output_data_base_name: results/output.e
     output_frequency: 100
     output_node_set: false
     output_variables:
     - velocity
-    - density
+    #    - density
     - pressure
-    - pressure_force
-    - viscous_force
-    - tau_wall_vector
-    - tau_wall
+    #    - pressure_force
+    #    - viscous_force
+    #    - tau_wall_vector
+    #    - tau_wall
     - turbulent_ke
-    - specific_dissipation_rate
-    - minimum_distance_to_wall
-    - sst_f_one_blending
-    - turbulent_viscosity
-    - element_courant
-    - q_criterion
+    #    - specific_dissipation_rate
+    #    - minimum_distance_to_wall
+    #    - sst_f_one_blending
+    #    - turbulent_viscosity
+    #    - element_courant
+    #    - q_criterion
     - vorticity
-    - assembled_area_force_moment
+    #    - assembled_area_force_moment
     - reynolds_stress
   post_processing:
   - frequency: 1
     output_file_name: _forces_pp.dat
-    parameters:
-    - 0
-    - 0
+    parameters: [0,0]
     physics: surface_force_and_moment
     target_name:
     - wing-pp
     type: surface
   - frequency: 1
     output_file_name: _forces.dat
-    parameters:
-    - 0
-    - 0
+    parameters: [0,0]
     physics: surface_force_and_moment
     target_name:
     - wing

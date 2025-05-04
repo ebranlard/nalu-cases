@@ -11,8 +11,7 @@ Time_Integrators:
     second_order_accuracy: true
     start_time: 0
     termination_step_count: 1001
-      #time_step: 0.0002667
-    time_step: 0.002
+    time_step: 0.0002667
     time_step_count: 0
     time_stepping_type: fixed
 linear_solvers:
@@ -38,8 +37,8 @@ linear_solvers:
   type: hypre
 realms:
 - boundary_conditions:
-  - wall_boundary_condition: bc_wing
-    target_name: wing
+  - target_name: wing
+    wall_boundary_condition: bc_wing
     wall_user_data:
       turbulent_ke: 0.0
       use_wall_function: false
@@ -47,8 +46,8 @@ realms:
       - 0
       - 0
       - 0
-  - wall_boundary_condition: bc_wing_pp
-    target_name: wing-pp
+  - target_name: wing-pp
+    wall_boundary_condition: bc_wing_pp
     wall_user_data:
       turbulent_ke: 0.0
       use_wall_function: false
@@ -57,16 +56,15 @@ realms:
       - 0
       - 0
   - inflow_boundary_condition: bc_inflow
-    target_name: inlet
     inflow_user_data:
       specific_dissipation_rate: 919.3455
       turbulent_ke: 0.0010422
       velocity:
-      - 0.75
+      - 75.0
       - 0.0
       - 0.0
+    target_name: inlet
   - open_boundary_condition: bc_open
-    target_name: outlet
     open_user_data:
       pressure: 0.0
       specific_dissipation_rate: 919.3455
@@ -75,6 +73,7 @@ realms:
       - 0.0
       - 0.0
       - 0.0
+    target_name: outlet
   - periodic_boundary_condition: bc_front_back
     periodic_user_data:
       search_tolerance: 0.0001
@@ -112,7 +111,7 @@ realms:
       specific_dissipation_rate: 919.3455
       turbulent_ke: 0.0010422
       velocity:
-      - 0.75 # <<<<<<<<
+      - 75.0
       - 0.0
       - 0.0
   material_properties:
@@ -124,32 +123,32 @@ realms:
       type: constant
       value: 9.0e-06
     target_name: fluid-hex
-  mesh: ../grids/S809_Re=100k_AoA8_nSpan=24_lfac10.exo
+  mesh: ../grids/ffa_w3_211_near_body_aoa_30.exo
   name: realm_1
   output:
-    output_data_base_name: results/base.e
-    output_frequency: 50
+    output_data_base_name: results/ffa_w3_211_32_sst.e
+    output_frequency: 100
     output_node_set: false
     output_variables:
     - velocity
-      #    - density
+    - density
     - pressure
     - pressure_force
     - viscous_force
-      #- tau_wall_vector
+    - tau_wall_vector
     - tau_wall
     - turbulent_ke
-      #- specific_dissipation_rate
-      #- minimum_distance_to_wall
-      #- sst_f_one_blending
-      #- turbulent_viscosity
-      #- element_courant
-      #- q_criterion
+    - specific_dissipation_rate
+    - minimum_distance_to_wall
+    - sst_f_one_blending
+    - turbulent_viscosity
+    - element_courant
+    - q_criterion
     - vorticity
-      #- assembled_area_force_moment
+    - assembled_area_force_moment
   post_processing:
   - frequency: 1
-    output_file_name: _forces.dat
+    output_file_name: sst_ffa_w3_211_32.dat
     parameters:
     - 0
     - 0
@@ -159,7 +158,7 @@ realms:
     - wing-pp
     type: surface
   restart:
-    restart_data_base_name: restart/base.rst
+    restart_data_base_name: restart/sst_ffa_w3_211_32.rst
     restart_frequency: 500
   solution_options:
     name: myOptions

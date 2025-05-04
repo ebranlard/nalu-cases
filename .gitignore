@@ -1,15 +1,19 @@
+# NALU
+results*
+restart*
+sideset*
 *.e
 *.e.*
 *.rst.*
 *.rst*
 *.exo
 
+
 _*
 
 !_setup/
 
-results*
-restart*
+
 
 *.log
 slurm-*
