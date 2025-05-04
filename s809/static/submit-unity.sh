@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=S809
-#SBATCH --time=2-00:00:00  # Job time limit Days-Hours:Minutes:Seconds
+#SBATCH --job-name=S8-ST-3D
+#SBATCH --time=1-00:00:00  # Job time limit Days-Hours:Minutes:Seconds
 #SBATCH --nodes=1
-#SBATCH --ntasks=1            # Number of MPI processes
-#SBATCH --mem=200G            # Memory
+#SBATCH --ntasks=64           # Number of MPI processes
+#SBATCH --mem=300G            # Memory
 #SBATCH -p cpu
 #SBATCH --exclude=cpu024  
 #SBATCH --nodelist=cpu069,cpu070,cpu071,cpu072,cpu073,cpu074,cpu075,cpu076,cpu077,cpu078
@@ -23,7 +23,7 @@
 ENV=nalu-wind-shared
 ENV=nalu-wind-nomod
 nalu_exec=naluX
-nalu_input=input_3d.yaml
+nalu_input=input.yaml
 EXAWIND_MANAGER=/work/pi_ebranlard_umass_edu/exawind-manager
 
 # ------------------- MODULES ----------------------------
@@ -66,8 +66,7 @@ echo "--------------------------------------------------------------------------
 echo "------------------------------------------------------------------------------"
 echo "#>>> Starting NALU  =  -n ${SLURM_NTASKS}   ${nalu_exec} ${nalu_input}"
 echo "#>>>            on:  $(date)"
-${nalu_exec} -i ${nalu_input} 
-#mpiexec -n ${SLURM_NTASKS}  ${nalu_exec} -i ${nalu_input} 
+mpiexec -n ${SLURM_NTASKS}  ${nalu_exec} -i ${nalu_input} 
 #srun -u -N3 -n312 --ntasks-per-node=104 --distribution=cyclic:cyclic --cpu_bind=cores ${nalu_exec} -i ${nalu_input} 
 #srun -u -N6 -n312 --ntasks-per-node=52 --distribution=cyclic:cyclic --cpu_bind=cores ${nalu_exec} -i ffa_w3_211_static_aoa_30.yaml -o log.out 
 echo "Done"

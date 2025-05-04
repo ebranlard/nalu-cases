@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=FF-ST-2D
-#SBATCH --time=0-16:00:00  # Job time limit Days-Hours:Minutes:Seconds
+#SBATCH --job-name=S0-ST-2D
+#SBATCH --time=0-08:00:00  # Job time limit Days-Hours:Minutes:Seconds
 #SBATCH --nodes=1
-#SBATCH --ntasks=32           # Number of MPI processes
+#SBATCH --ntasks=16           # Number of MPI processes
 #SBATCH --mem=100G            # Memory
 #SBATCH -p cpu
 #SBATCH --exclude=cpu024  
-#-SBATCH --nodelist=cpu069,cpu070,cpu071,cpu072,cpu073,cpu074,cpu075,cpu076,cpu077,cpu078
+#SBATCH --nodelist=cpu069,cpu070,cpu071,cpu072,cpu073,cpu074,cpu075,cpu076,cpu077,cpu078
 #-SBATCH --exclusive  # Request entire nodes
 #-SBATCH --cpus-per-task=1      # Number of Cores per Task
 #-SBATCH --ntasks-per-node=24   # 
@@ -23,17 +23,16 @@
 ENV=nalu-wind-shared
 ENV=nalu-wind-nomod
 nalu_exec=naluX
-nalu_input=input.yaml
+nalu_input=input_0.yaml
 EXAWIND_MANAGER=/work/pi_ebranlard_umass_edu/exawind-manager
 
 # ------------------- MODULES ----------------------------
 #module purge
-#module load mpich/4.2.1
-#module load python/3.12.3
+#module load PrgEnv-intel
+#module load cray-python 
 
 # ------------- SETUP EXAWIND MANAGER -------------------
-echo "# >>> Activating spack from exawind-manager"
-source "${EXAWIND_MANAGER}/start.sh" && spack-start
+source ${EXAWIND_MANAGER}/start.sh && spack-start 
 echo "# >>> Activating environment  : ${ENV}"
 spack env activate -d "${EXAWIND_MANAGER}/environments/${ENV}"  || exit 1
 spack load nalu-wind

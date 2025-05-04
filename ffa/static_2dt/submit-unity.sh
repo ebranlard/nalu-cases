@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=FF-ST-2D
+#SBATCH --job-name=FFst2Dt
 #SBATCH --time=0-16:00:00  # Job time limit Days-Hours:Minutes:Seconds
 #SBATCH --nodes=1
 #SBATCH --ntasks=32           # Number of MPI processes

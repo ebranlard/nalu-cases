@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --job-name=st1-32
+#SBATCH --job-name=FF-ST-3D
 #SBATCH --time=2-00:00:00  # Job time limit Days-Hours:Minutes:Seconds
 #SBATCH --nodes=1
-#SBATCH --ntasks=32           # Number of MPI processes
+#SBATCH --ntasks=128           # Number of MPI processes
 #SBATCH --mem=300G            # Memory
 #SBATCH -p cpu
 #SBATCH --exclude=cpu024  
@@ -67,8 +67,7 @@ echo "--------------------------------------------------------------------------
 echo "------------------------------------------------------------------------------"
 echo "#>>> Starting NALU  =  -n ${SLURM_NTASKS}   ${nalu_exec} ${nalu_input}"
 echo "#>>>            on:  $(date)"
-${nalu_exec} -i ${nalu_input} 
-#mpiexec -n ${SLURM_NTASKS}  ${nalu_exec} -i ${nalu_input} 
+mpiexec -n ${SLURM_NTASKS}  ${nalu_exec} -i ${nalu_input} 
 #srun -u -N3 -n312 --ntasks-per-node=104 --distribution=cyclic:cyclic --cpu_bind=cores ${nalu_exec} -i ${nalu_input} 
 #srun -u -N6 -n312 --ntasks-per-node=52 --distribution=cyclic:cyclic --cpu_bind=cores ${nalu_exec} -i ffa_w3_211_static_aoa_30.yaml -o log.out 
 echo "Done"
