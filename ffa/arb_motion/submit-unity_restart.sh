@@ -1,38 +1,33 @@
 #!/bin/bash
-#SBATCH --job-name=ffa1-128-nolist
+#SBATCH --job-name=ffa-128_restart
 #SBATCH --time=2-00:00:00  # Job time limit Days-Hours:Minutes:Seconds
 #SBATCH --nodes=1
 #SBATCH --ntasks=128            # Number of MPI processes
-#SBATCH --mem=400G              # Memory
+#SBATCH --mem=200G  #  Memory
 #SBATCH -p cpu
-#SBATCH --exclude=cpu024  # Request entire nodes
-#SBATCH --nodelist=cpu029
-#-SBATCH --exclusive  # Request entire nodes
-#-SBATCH --nodelist=cpu022,cpu023,cpu024,cpu025,cpu026,cpu027,cpu028,cpu029
 #-SBATCH --cpus-per-task=1      # Number of Cores per Task
-#-SBATCH --ntasks-per-node=24   # 
+#-SBATCH --exclusive  # Request entire nodes
+#-SBATCH --ntasks-per-node=24  # 
 #-SBATCH --constraint=ib # for infiniband
 #SBATCH --mail-user=ebranlard@umass.edu
-#SBATCH --mail-type ALL # Send e-mail when job begins, ends or fails
+#SBATCH --mail-type START,END,FAIL # Send e-mail when job begins, ends or fails
 #SBATCH --output=slurm-%x.log   # Output %j: job number, %x: jobname
 #-SBATCH -G 1  # Number of GPUs
 #-SBATCH -p gpu  # Partition
+#-SBATCH --time=0-36
 #-SBATCH --account=isda
 
-# --------------------- INPUT ----------------------------
 ENV=nalu-wind-shared
 nalu_exec=naluX
-nalu_input=input.yaml
-export EXAWIND_MANAGER=/work/pi_ebranlard_umass_edu/exawind-manager
+nalu_input=input_restart.yaml
 
-# ------------------- MODULES ----------------------------
 #module purge
 #module load PrgEnv-intel
 #module load cray-python 
 
-# ------------- SETUP EXAWIND MANAGER -------------------
-source "${EXAWIND_MANAGER}/start.sh" && spack-start 
-spack env activate -d "${EXAWIND_MANAGER}/environments/${ENV}"  || exit 1
+export EXAWIND_MANAGER=/work/pi_ebranlard_umass_edu/exawind-manager
+source ${EXAWIND_MANAGER}/start.sh && spack-start 
+spack env activate -d ${EXAWIND_MANAGER}/environments/${ENV}
 spack load nalu-wind
 
 #ranks_per_node=104
@@ -65,7 +60,6 @@ echo "--------------------------------------------------------------------------
 echo "------------------------------------------------------------------------------"
 echo "------------------------------------------------------------------------------"
 echo "#>>> Starting NALU  =  -n ${SLURM_NTASKS}   ${nalu_exec} ${nalu_input}"
-echo "#>>>            on:  $(date)"
 mpiexec -n ${SLURM_NTASKS}  ${nalu_exec} -i ${nalu_input} 
 #srun -u -N${SLURM_NNODES} -n${SLURM_NTASKS} ${nalu_exec} -i ${nalu_input} 
 # mpiexec -n ${SLURM_NTASKS} --host $SLURM_JOB_NODELIST   ${nalu_exec} -i ${nalu_input} 
@@ -74,6 +68,7 @@ mpiexec -n ${SLURM_NTASKS}  ${nalu_exec} -i ${nalu_input}
 #srun -u -N1 -n${SLURM_NTASKS} ${nalu_exec} -i ${nalu_input} 
 #srun -u -N3 -n312 --ntasks-per-node=104 --distribution=cyclic:cyclic --cpu_bind=cores ${nalu_exec} -i ${nalu_input} 
 #srun -u -N4 -n384 --ntasks-per-node=96 --distribution=block:cyclic --cpu_bind=cores ${nalu_exec} -i ${nalu_input} 
+
 #srun -u -N6 -n312 --ntasks-per-node=52 --distribution=cyclic:cyclic --cpu_bind=cores ${nalu_exec} -i ffa_w3_211_static_aoa_30.yaml -o log.out 
 echo "Done"
 echo "------------------------------------------------------------------------------"

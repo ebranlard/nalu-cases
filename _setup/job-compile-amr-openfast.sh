@@ -70,13 +70,6 @@ if [[ "$CREATE_ENV" == "true" ]]; then
     echo "# >>> Creating environment: ${ENV_NAME}"
     cd ${EXAWIND_MANAGER}/environments || exit 1
     spack manager create-env --name $ENV_NAME --spec 'amr-wind+hypre+netcdf+openfast ^openfast@develop+openmp+rosco %oneapi' || exit 1
-    # --- Check dependencies 
-    echo "# >>> Activating environment: ${ENV_NAME}"
-    spack env activate -d "${EXAWIND_MANAGER}/environments/${ENV_NAME}"  || exit 1
-    # --- Check dependencies 
-    echo "# >>> Spack concretize"
-    spack concretize -f || exit 1
-    spack deactivate
 else
     echo "# >>> Not creating dedicated environment"
 fi
@@ -85,6 +78,10 @@ fi
 # ------------ ACTIVATE & INSTALL ENVIRONMENT -----------
 echo "# >>> Activating environment  : ${ENV_NAME}"
 spack env activate -d "${EXAWIND_MANAGER}/environments/${ENV_NAME}"  || exit 1
+
+# --- Check dependencies 
+echo "# >>> Spack concretize"
+spack concretize -f || exit 1
 
 echo "# >>> Spack install:"
 spack install

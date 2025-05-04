@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=CEX
+#SBATCH --job-name=CNW-shared
 #SBATCH --time=0-08:00:00  # Job time limit Days-Hours:Minutes:Seconds
 ##SBATCH --exclusive  # Request entire nodes
 #SBATCH --nodes=1
@@ -15,7 +15,7 @@
 ####SBATCH -G 1  # Number of GPUs
 ####SBATCH -p gpu  # Partition
 ####SBATCH --time=0-36
-####SBATCH --account=isda
+####SBATCH --account=bar
 echo "# Working directory $SLURM_SUBMIT_DIR"
 echo "# Job name:         $SLURM_JOB_NAME"
 echo "# Job ID:           $SLURM_JOBID"
@@ -23,20 +23,21 @@ echo "# Starting job on:  $(date)"
 
 # --------------------- INPUT ----------------------------
 EXAWIND_PARENT_DIR=/work/pi_ebranlard_umass_edu/
-ENV_NAME=exawind-cpu 
+#ENV_NAME=nalu-wind-nomod
+# ENV_NAME=nalu-wind-openmpi
+# ENV_NAME=nalu-wind-oneapi
+ENV_NAME=nalu-wind-shared
 CREATE_ENV="true"
 
 
-# --------------------------------------------------------
+# ------------------- MODULES ----------------------------
 echo "# Modules: "
 module purge
-# module load intel-oneapi-compilers/2024.1.0
-# module load mpich/4.2.1
-# module load python/3.12.3
+module load intel-oneapi-compilers/2024.1.0
+#module load mpich/4.2.1
 module load openmpi/5.0.3
+#module load python/3.12.3
 module list
-echo "# OS: "
-lsb_release -a
 
 
 # ------------- SETUP EXAWIND MANAGER -------------------
@@ -72,7 +73,8 @@ source "${EXAWIND_MANAGER}/start.sh" && spack-start
 if [[ "$CREATE_ENV" == "true" ]]; then
     echo "# >>> Creating environment: ${ENV_NAME}"
     cd ${EXAWIND_MANAGER}/environments || exit 1
-    spack manager create-env --name $ENV_NAME --spec 'exawind@master~amr_wind_gpu~cuda~gpu-aware-mpi~nalu_wind_gpu ^amr-wind@main~cuda~gpu-aware-mpi+hypre+mpi+netcdf+shared ^nalu-wind@master~cuda~fftw~gpu-aware-mpi+hypre+shared ^tioga@develop %oneapi' || exit 1
+    spack manager create-env --name $ENV_NAME --spec 'nalu-wind+hypre+tioga+shared %oneapi' || exit 1
+#     spack manager create-env --name $ENV_NAME --spec 'nalu-wind+hypre+tioga+trilinos-solvers %oneapi' || exit 1
 else
     echo "# >>> Not creating dedicated environment"
 fi
