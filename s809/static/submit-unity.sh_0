@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=S8st3D
+#SBATCH --job-name=S0st3D
 #SBATCH --time=1-00:00:00  # Job time limit Days-Hours:Minutes:Seconds
 #SBATCH --nodes=1
 #SBATCH --ntasks=64           # Number of MPI processes
@@ -23,7 +23,7 @@
 ENV=nalu-wind-shared
 ENV=nalu-wind-nomod
 nalu_exec=naluX
-nalu_input=input.yaml
+nalu_input=input_0.yaml
 EXAWIND_MANAGER=/work/pi_ebranlard_umass_edu/exawind-manager
 
 # ------------------- MODULES ----------------------------

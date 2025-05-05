@@ -160,7 +160,7 @@ realms:
       value: 9.0e-06
     target_name: fluid-hex
 # Mesh
-  mesh: ../grids/S809_Re=100k_AoA8_nSpan=24_lfac10.exo
+  mesh: ../grids/S809_Re=100k_AoA0_nSpan=24_lfac10.exo
   name: realm_1
 # Outputs
   output:
