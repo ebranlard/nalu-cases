@@ -26,4 +26,12 @@ slurm-*
 home_to_*.bat
 kestrel_to*.bat
 unity_to*.bat
+unity_*
 scp*.bat
+
+
+
+
+*.png
+*.mp4
+*.avi
