@@ -1,0 +1,9 @@
+*aoa*.yaml
+*aoa*.sh
+meshes
+
+forces*.csv
+grids/explore/*.txt
+grids/explore/*.fmt
+
+*_bkp
