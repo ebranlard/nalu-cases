@@ -50,7 +50,8 @@ linear_solvers:
     type: hypre
 
 realms:
-- boundary_conditions:
+- automatic_decomposition_type: rcb
+  boundary_conditions:
   - target_name: wing
     wall_boundary_condition: bc_wall
     wall_user_data:

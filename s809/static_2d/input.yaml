@@ -1,4 +1,6 @@
-# 
+#
+# U = 0.75 m/s; aoa = 8 deg; Re = 1.0e5
+#
 # hypre 
 # solve_mom, solve_scalar, solve_elliptic
 # sst_iddes

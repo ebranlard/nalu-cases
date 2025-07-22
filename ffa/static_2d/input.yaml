@@ -2,7 +2,7 @@
 # hypre 
 # solve_mom, solve_scalar, solve_elliptic
 # sst_iddes
-velocity_value: &vel [75.000000, 0.000000]
+AAA_velocity_value: &vel [75.000000, 0.000000]
 Simulations:
 - name: sim1
   optimizer: opt1
@@ -85,7 +85,7 @@ realms:
     wall_user_data:
       turbulent_ke: 0.0
       use_wall_function: false
-      velocity: [0,0]
+      velocity: [0, 0]
 
   - inflow_boundary_condition: bc_inflow
     inflow_user_data:
@@ -99,7 +99,7 @@ realms:
       pressure: 0.0
       specific_dissipation_rate: 919.3455
       turbulent_ke: 0.0010422
-      velocity: [0,0]
+      velocity: [0, 0]
     target_name: outlet
 
 
@@ -148,7 +148,7 @@ realms:
       value: 9.0e-06
     target_name: fluid-quad
 # Mesh
-  mesh: ../grids/ffa_w3_211_near_body_aoa_30_quads.exo
+  mesh: ../grids/ffa_w3_211_near_body_aoa30_n1.exo
   name: realm_1
 # Outputs
   output:
