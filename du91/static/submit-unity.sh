@@ -11,8 +11,8 @@
 #-SBATCH --cpus-per-task=1      # Number of Cores per Task
 #-SBATCH --ntasks-per-node=24   # 
 #-SBATCH --constraint=ib # for infiniband
-#SBATCH --mail-user=ebranlard@umass.edu
-#SBATCH --mail-type ALL # Send e-mail when job begins, ends or fails
+##SBATCH --mail-user=ebranlard@umass.edu
+##SBATCH --mail-type ALL # Send e-mail when job begins, ends or fails
 #SBATCH --output=slurm-%x.log   # Output %j: job number, %x: jobname
 #-SBATCH -G 1  # Number of GPUs
 #-SBATCH -p gpu  # Partition
