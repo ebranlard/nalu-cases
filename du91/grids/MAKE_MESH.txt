@@ -1,0 +1,19 @@
+
+# 
+#arf-mesh ./du91-w2-225_nalu_l384.csv -n 201 -o ./du91-w2-225_nalu_l400.csv
+
+arf-mesh ./du91-w2-225_nalu_l384.csv -n 201 -o ./du91-w2-225_nalu_l400.csv --a_hyp 4 --respline 
+
+
+pyhyp.exe --s0 2.5e-6 --marchDist 65 -n 129 -i .\du91-w2-225_nalu_l400.csv -o .\du91-w2-225_nalu_l400_m129_n1_y2.5mu_re2M.exo
+
+
+
+# NREL DU 250
+pyhyp.exe --s0 2.5e-6 --marchDist 65 -n 129 -i .\du91-w2-250_fast_l399.csv -o .\du91-w2-250_re2M_y2.5mu_l399_m129_n1.exo
+
+
+
+
+
+

@@ -1,16 +1,18 @@
-# TU Delft DU00-W-212 airfoil
-# 
-# M=0.1, Re=3M, Tu=0.0864%
-# 
-# U∞ =34.1m/s, ρ =1.225kg/m3, μt/μ =1 
-# k∞ =0.0013020495206400003, ω∞=114.54981120000002 
+# -*- mode: yaml -*-
 #
-# RANS using 1-eq Gamma transition model
+# 2-D RANS (k-omega SST) simulation of DU-91-W2-225 airfoil
+#
+# U = 15 m/s; aoa = 4 deg???; Re = 2.0e6
+# NOTE:       aoa = 0
+#
+# Airfoil         :  DU-91-W2-225
+#
+# Turbulence model: sst
+# Transition      : 1-eq model
 # 
-# Turbulence / Transition model: SST-2003 with the 1-eq Gamma transition model
-#
-#
-
+# Inspired from input files in exawind-benchmark for du00-2-212 and nfl1
+# 
+velocity_value: &vel [15.000000, 0.000000]
 Simulations:
 - name: sim1
   optimizer: opt1
@@ -23,7 +25,7 @@ Time_Integrators:
     second_order_accuracy: true
     start_time: 0
     termination_step_count: 10000
-    time_step: 0.014662756598240468
+    time_step: 0.002
     time_step_count: 0
     time_stepping_type: fixed
 hypre_config:
@@ -140,21 +142,19 @@ realms:
       - 0
   - inflow_boundary_condition: bc_inflow
     inflow_user_data:
-      specific_dissipation_rate: 114.54981120000002
-      turbulent_ke: 0.0013020495206400003
-      velocity:
-      - 34.1
-      - 0.0
-    target_name: inflow
+      specific_dissipation_rate: 2266.4
+      turbulent_ke: 0.095118
+      velocity: *vel
+    target_name: inlet
   - open_boundary_condition: bc_open
     open_user_data:
       pressure: 0.0
-      specific_dissipation_rate: 114.54981120000002
-      turbulent_ke: 0.0013020495206400003
+      specific_dissipation_rate: 2266.4
+      turbulent_ke: 0.095118
       velocity:
       - 0
       - 0
-    target_name: outflow
+    target_name: outlet
   equation_systems:
     max_iterations: 4
     name: theEqSys
@@ -181,46 +181,28 @@ realms:
   initial_conditions:
   - constant: ic_1
     target_name:
-    - Flow-QUAD
+    - fluid-QUAD
     value:
       gamma_transition: 1.0
       pressure: 0
-      specific_dissipation_rate: 114.54981120000002
-      turbulent_ke: 0.0013020495206400003
-      velocity:
-      - 34.1
-      - 0.0
-      - 0.0
+      specific_dissipation_rate: 2266.4
+      turbulent_ke: 0.095118
+      velocity: *vel
   material_properties:
     specifications:
     - name: density
       type: constant
-      value: 1.225
+      value: 1.2
     - name: viscosity
       type: constant
-      value: 1.392416666666667e-05
+      value: 9.0e-06
     target_name:
-    - Flow-QUAD
-  mesh: ../grids/du00w212_re3M_y03_aoa0_n1_original.exo
-  mesh_transformation:
-  - mesh_parts:
-    - Flow-QUAD
-    motion:
-    - angle: 0.0
-      axis:
-      - 0.0
-      - 0.0
-      - -1.0
-      centroid:
-      - 0.25
-      - 0.0
-      - 0.0
-      type: rotation
-    name: interior
+    - fluid-QUAD
+  mesh: ../grids/du91-w2-225_nalu_l400_m129_n1_y2.5mu_re2M.exo
   name: realm_1
   output:
-    output_data_base_name: results/du00w212_F.e
-    output_frequency: 5000
+    output_data_base_name: results/output_trans.exo
+    output_frequency: 100
     output_node_set: false
     output_variables:
     - velocity
@@ -229,12 +211,14 @@ realms:
     - specific_dissipation_rate
     - turbulent_viscosity
     - minimum_distance_to_wall
+    - sst_f_one_blending
+    - turbulent_viscosity
     - gamma_transition
   post_processing:
   - frequency: 1
-    output_file_name: forces.csv
+    output_file_name: forces_trans.csv
     parameters:
-    - 0.25
+    - 0
     - 0
     physics: surface_force_and_moment
     target_name: airfoil
