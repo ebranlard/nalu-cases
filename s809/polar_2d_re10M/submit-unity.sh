@@ -3,7 +3,7 @@
 #SBATCH --time=0-02:00:00  # Job time limit Days-Hours:Minutes:Seconds
 #SBATCH --nodes=1
 #SBATCH --ntasks=24           # Number of MPI processes
-#SBATCH --mem=10G            # Memory
+#SBATCH --mem=15G            # Memory
 #SBATCH -p cpu
 #SBATCH --exclude=cpu024  
 #-SBATCH --nodelist=cpu069,cpu070,cpu071,cpu072,cpu073,cpu074,cpu075,cpu076,cpu077,cpu078

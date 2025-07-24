@@ -3,7 +3,7 @@
 #SBATCH --time=0-02:00:00  # Job time limit Days-Hours:Minutes:Seconds
 #SBATCH --nodes=1
 #SBATCH --ntasks=24           # Number of MPI processes
-#SBATCH --mem=10G            # Memory
+#SBATCH --mem=15G            # Memory
 #SBATCH -p cpu
 #SBATCH --exclude=cpu024  
 #-SBATCH --nodelist=cpu069,cpu070,cpu071,cpu072,cpu073,cpu074,cpu075,cpu076,cpu077,cpu078
@@ -11,8 +11,8 @@
 #-SBATCH --cpus-per-task=1      # Number of Cores per Task
 #-SBATCH --ntasks-per-node=24   # 
 #-SBATCH --constraint=ib # for infiniband
-##SBATCH --mail-user=ebranlard@umass.edu
-##SBATCH --mail-type ALL # Send e-mail when job begins, ends or fails
+#SBATCH --mail-user=ebranlard@umass.edu
+#SBATCH --mail-type ALL # Send e-mail when job begins, ends or fails
 #SBATCH --output=slurm-%x.log   # Output %j: job number, %x: jobname
 #-SBATCH -G 1  # Number of GPUs
 #-SBATCH -p gpu  # Partition
