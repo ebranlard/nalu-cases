@@ -59,8 +59,8 @@ def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, bac
     stepsPerT = int(T/dt)
 
 
-    basename_ReMean = basename+'_'+'re={:04.1f}_mean={:04.1f}'.format(re_round, mean_round)
-    basename = basename_ReMean+'_'+'A={:04.1f}_f={:03.1f}'.format(amplitude, frequency)
+    basename_ReMean = basename+'_'+'re{:04.1f}_mean{:04.1f}'.format(re_round, mean_round)
+    basename = basename_ReMean+'_'+'A{:04.1f}_f{:03.1f}'.format(amplitude, frequency)
     yaml_file = os.path.join(sim_dir, basename+'.yaml')
 
 
@@ -118,7 +118,7 @@ def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, bac
 
 
     if batch_template is not None:
-        batch_file = nalu_batch(batch_template, nalu_input_file=yaml_file, jobname=basename_ReMean, sim_dir=sim_dir)
+        batch_file = nalu_batch(batch_template, nalu_input_file=yaml_file, jobname=basename, sim_dir=sim_dir)
     else:
         batch_file =None
 
