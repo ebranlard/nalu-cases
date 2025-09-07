@@ -66,6 +66,8 @@ for airfoil_name in airfoil_names:
 
     db_arf = db.select({'airfoil':airfoil_name})
     Reynolds = db_arf.configs['Re'].round(1).unique()
+
+    Reynolds = np.unique(list(Reynolds) + [0.1, 0.5, 0.75, 1, 2, 5, 10])
     print('Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
 
 
@@ -79,7 +81,7 @@ for airfoil_name in airfoil_names:
                 print(f'Failed to create mesh for {airfoil_name} with Re={re}M, N={N}, y+={yplus}')
                 FAILED.append((airfoil_name, re, N, yplus))	
         else:
-            print(f'[SKIP] {airfoil_name}')
+            print(f'[SKIP] {airfoil_name} {re}')
 
 for failed in FAILED:
 	print(f'Failed to create mesh for {failed[0]} with Re={failed[1]}M, N={failed[2]}, y+={failed[3]}')
