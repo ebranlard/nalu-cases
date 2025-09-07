@@ -25,9 +25,9 @@ yplus=0.1
 
 Reynolds =[0.1, 0.5, 0.75, 1, 2, 5, 10]
 Alpha_mean = [0, 4, 8, 12]
-Amplitudes = [1, 2]
-nT = 10
-nramp=5
+Amplitudes = [1, -1, 2]
+nT = 20
+nramp=10
 
 
 # 
@@ -114,8 +114,7 @@ def create_step_case(alpha_mean, amplitude, nT, re, mesh_file_2d, background_3d,
     ti['time_step'] = dt
 
     t_steady = T
-    #t, x, y, theta = yml.set_sine_motion(A=amplitude, f=frequency, n_periods=10, t_steady=t_steady, dt=dt, DOF='pitch', irealm=1)
-    t, x, y, theta = yml.set_step_motion(A=amplitude, t_steady=t_steady, dt=dt, DOF='pitch', irealm=1, nramp=nramp)
+    t, x, y, theta = yml.set_step_motion(A=-amplitude, t_steady=t_steady, dt=dt, DOF='pitch', irealm=1, nramp=nramp)
 
     ti['termination_step_count'] = int(np.max(t)/dt)
 
@@ -144,7 +143,6 @@ for airfoil_name in airfoil_names:
                 yml, batch = create_step_case(alpha_mean, amplitude, nT, re, mesh_file_2d, background_3d, yml, sim_dir, basename=airfoil_name, nSpan=nSpan, density=density, viscosity=viscosity, batch_template=batch_template, nramp=nramp)
                 print('[YML]', yml)
                 print('[BAT]', batch)
-                break
             break
         break
 
