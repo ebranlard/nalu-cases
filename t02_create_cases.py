@@ -14,13 +14,15 @@ airfoil_dir ='airfoil_meshes'
 mesh_dir    ='meshes'
 case_dir    ='cases'
 nalu_template ='_templates/airfoil_name/input.yaml'
-batch_template ='_templates/submit-kestrel.sh'
+batch_template ='_templates/submit-kestrel_n1.sh'
 density= 1.2
 viscosity = 9.0e-06
 background_2d = './meshes/background_n1.exo'
 nSpan = 4
 N = 150
 yplus=0.1
+nT=15
+nT_steady=20
 
 # 
 db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
@@ -35,7 +37,7 @@ background_3d = './meshes/background_n{}.exo'.format(nSpan)
 yml = NALUInputFile(nalu_template)
 
 
-def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, background_3d, nalu_template, sim_dir, basename, nSpan=4, density=1.2, viscosity=9.0e-6, chord=1, mean_round=None, re_round=None, batch_template=None):
+def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, background_3d, nalu_template, sim_dir, basename, nSpan=4, density=1.2, viscosity=9.0e-6, chord=1, mean_round=None, re_round=None, batch_template=None, nT_steady=20, nT=10):
     if mean_round is None:
         mean_round = alpha_mean
     if re_round is None:
@@ -56,7 +58,8 @@ def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, bac
     U = float(re*1e6 *viscosity /(density * chord ))
     dt = float(np.around(0.02 * chord / U, 8))
     T = float(1/frequency)
-    stepsPerT = int(T/dt)
+
+    T_steady = chord/U*nT_steady
 
 
     basename_ReMean = basename+'_'+'re{:04.1f}_mean{:04.1f}'.format(re_round, mean_round)
@@ -113,8 +116,8 @@ def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, bac
     yml.viscosity = viscosity
     ti['time_step'] = dt
 
-    t_steady = max(2*T, 100*dt)
-    t, x, y, theta = yml.set_sine_motion(A=amplitude, f=frequency, n_periods=10, t_steady=t_steady, dt=dt, DOF='pitch', irealm=1)
+    t_steady = np.max([2*T, 100*dt, T_steady])
+    t, x, y, theta = yml.set_sine_motion(A=amplitude, f=frequency, n_periods=nT, t_steady=t_steady, dt=dt, DOF='pitch', irealm=1)
 
     ti['termination_step_count'] = int(np.max(t)/dt)
 
@@ -144,9 +147,9 @@ for airfoil_name in airfoil_names:
             freq = config['Frequency']
             re_real = config['Re']
             print(dict(config))
-            yml, batch = create_pitching_case(alpha_mean, amplitude, freq, re_real, mesh_file_2d, background_3d, yml, sim_dir, basename=airfoil_name, nSpan=nSpan, density=density, viscosity=viscosity, mean_round=mean_round, re_round=re, batch_template=batch_template)
+            yml, batch = create_pitching_case(alpha_mean, amplitude, freq, re_real, mesh_file_2d, background_3d, yml, sim_dir, basename=airfoil_name, nSpan=nSpan, density=density, viscosity=viscosity, mean_round=mean_round, re_round=re, batch_template=batch_template, nT_steady=nT_steady, nT=nT)
             print('[YML]', yml)
             print('[BAT]', batch)
-            if idx==0:
+            if idx==1:
                 break
 

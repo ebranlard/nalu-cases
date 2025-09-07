@@ -14,7 +14,7 @@ airfoil_dir ='airfoil_meshes'
 mesh_dir    ='meshes'
 case_dir    ='cases_step'
 nalu_template ='_templates/airfoil_name/input.yaml'
-batch_template ='_templates/submit-kestrel.sh'
+batch_template ='_templates/submit-kestrel_n1.sh'
 density= 1.2
 viscosity = 9.0e-06
 background_2d = './meshes/background_n1.exo'
@@ -26,7 +26,7 @@ yplus=0.1
 Reynolds =[0.1, 0.5, 0.75, 1, 2, 5, 10]
 Alpha_mean = [0, 4, 8, 12]
 Amplitudes = [1, -1, 2]
-nT = 20
+nT_steady = 20
 nramp=10
 
 
@@ -43,7 +43,7 @@ background_3d = './meshes/background_n{}.exo'.format(nSpan)
 yml = NALUInputFile(nalu_template)
 
 
-def create_step_case(alpha_mean, amplitude, nT, re, mesh_file_2d, background_3d, nalu_template, sim_dir, basename, nSpan=4, density=1.2, viscosity=9.0e-6, chord=1, batch_template=None, nramp=5):
+def create_step_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3d, nalu_template, sim_dir, basename, nSpan=4, density=1.2, viscosity=9.0e-6, chord=1, batch_template=None, nramp=5):
 
     if isinstance(nalu_template, str):
         yml_in = NALUInputFile(nalu_template)
@@ -59,7 +59,7 @@ def create_step_case(alpha_mean, amplitude, nT, re, mesh_file_2d, background_3d,
 
     U = float(re*1e6 *viscosity /(density * chord ))
     dt = float(np.around(0.02 * chord / U, 8))
-    T = chord/U*nT
+    T = chord/U*nT_steady
 
 
     basename_ReMean = basename+'_'+'re{:04.1f}_mean{:02d}'.format(re, int(alpha_mean))
@@ -140,9 +140,11 @@ for airfoil_name in airfoil_names:
         mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re}M_y{yplus}mu.exo')
         for ia, alpha_mean in enumerate(Alpha_mean):
             for iA, amplitude in enumerate(Amplitudes):
-                yml, batch = create_step_case(alpha_mean, amplitude, nT, re, mesh_file_2d, background_3d, yml, sim_dir, basename=airfoil_name, nSpan=nSpan, density=density, viscosity=viscosity, batch_template=batch_template, nramp=nramp)
+                yml, batch = create_step_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3d, yml, sim_dir, basename=airfoil_name, nSpan=nSpan, density=density, viscosity=viscosity, batch_template=batch_template, nramp=nramp)
                 print('[YML]', yml)
                 print('[BAT]', batch)
+            if ia==2:
+                break
+        if iRe==2:
             break
-        break
 
