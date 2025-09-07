@@ -101,6 +101,8 @@ def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, bac
     af['restart']['restart_data_base_name'] = 'restart/'+basename_ReMean+'_arf'
 
 
+    if not os.path.exists(os.path.join(sim_dir,'forces')):
+        os.makedirs(os.path.join(sim_dir,'forces'))
 
     pp = af['post_processing'][0]['output_file_name'] = 'forces/'+basename+'_pp.csv'
     pp = af['post_processing'][1]['output_file_name'] = 'forces/'+basename+'.csv'
