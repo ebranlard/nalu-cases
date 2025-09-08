@@ -124,7 +124,7 @@ def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, bac
 
 
     if batch_template is not None:
-        batch_file = nalu_batch(batch_template, nalu_input_file=yaml_file, jobname='p'+basename, sim_dir=sim_dir)
+        batch_file = nalu_batch(batch_template, nalu_input_file=yaml_file, jobname='p'+basename, sim_dir=sim_dir, mail=True)
     else:
         batch_file =None
 

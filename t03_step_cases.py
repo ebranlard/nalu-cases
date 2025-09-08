@@ -121,7 +121,7 @@ def create_step_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, backgro
 
 
     if batch_template is not None:
-        batch_file = nalu_batch(batch_template, nalu_input_file=yaml_file, jobname='s'+basename, sim_dir=sim_dir)
+        batch_file = nalu_batch(batch_template, nalu_input_file=yaml_file, jobname='s'+basename, sim_dir=sim_dir, mail=True)
     else:
         batch_file =None
 
