@@ -100,8 +100,9 @@ def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, bac
     bg['mesh'] = os.path.relpath(background_3d, sim_dir).replace('\\', '/')
     af['mesh'] = os.path.relpath(extruded_mesh_2d, sim_dir).replace('\\', '/')
 
-    bg['restart']['restart_data_base_name'] = 'restart/'+basename_ReMean+'_bg'
-    af['restart']['restart_data_base_name'] = 'restart/'+basename_ReMean+'_arf'
+    if 'restart' in bg:
+        bg['restart']['restart_data_base_name'] = 'restart/'+basename_ReMean+'_bg'
+        af['restart']['restart_data_base_name'] = 'restart/'+basename_ReMean+'_arf'
 
 
     if not os.path.exists(os.path.join(sim_dir,'forces')):
