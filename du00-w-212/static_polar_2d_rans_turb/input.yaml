@@ -229,7 +229,6 @@ realms:
     - specific_dissipation_rate
     - turbulent_viscosity
     - minimum_distance_to_wall
-    - gamma_transition
   post_processing:
   - frequency: 1
     output_file_name: forces.csv
@@ -281,7 +280,7 @@ realms:
         sdr_amb: 0.0
         tke_amb: 0.0
     projected_timescale_type: momentum_diag_inv
-    transition_model: true
+    transition_model: false
     turbulence_model: sst
   time_step_control:
     target_courant: 1000.0

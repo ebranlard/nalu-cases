@@ -1,6 +1,24 @@
 
 
+
+
+
 # TU Delft DU00-W-212 airfoil
+
+
+## Modifications
+
+"ori" refers to the original mesh
+Otherwise, we are using our own pyHyp generated mesh.
+
+
+
+
+
+
+
+
+## Intro
 
 Validation of the transition model is conducted for the DU00-W-212 wind turbine airfoil using Nalu-Wind with the 1-equation gamma transition model. A full angle-of-attack sweep was performed, and the results are compared against the experimental data[1] and fully tubulent simulation results.
 
