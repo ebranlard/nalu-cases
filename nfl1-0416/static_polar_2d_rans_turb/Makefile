@@ -11,7 +11,7 @@ purgeaoa:
 	rm -rf *aoa*
 
 aoa:
-	nalu-aseq input.yaml -a -7 20 1 -b submit-unity.sh -j Fpo
+	nalu-aseq input.yaml -a -7 20 1 -b submit-unity.sh -j Fpo --no-check
 
 submit:
 	for file in submit-input_*.sh ; do  sbatch $$file; done
