@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=ffa1-128-nolist
-#SBATCH --time=2-00:00:00  # Job time limit Days-Hours:Minutes:Seconds
+#SBATCH --job-name=ffa1-128
+#SBATCH --time=12-00:00:00  # Job time limit Days-Hours:Minutes:Seconds
 #SBATCH --nodes=1
 #SBATCH --ntasks=128            # Number of MPI processes
 #SBATCH --mem=400G              # Memory
@@ -15,6 +15,7 @@
 #SBATCH --mail-user=ebranlard@umass.edu
 #SBATCH --mail-type ALL # Send e-mail when job begins, ends or fails
 #SBATCH --output=slurm-%x.log   # Output %j: job number, %x: jobname
+#SBATCH --qos=long
 #-SBATCH -G 1  # Number of GPUs
 #-SBATCH -p gpu  # Partition
 #-SBATCH --account=isda
