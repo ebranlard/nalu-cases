@@ -12,7 +12,7 @@ from nalulib.exodus_quads2hex import exo_zextrude
 
 airfoil_dir ='airfoil_meshes'
 mesh_dir    ='meshes'
-case_dir    ='cases'
+case_dir    ='cases_pitching'
 nalu_template ='_templates/airfoil_name/input.yaml'
 batch_template ='_templates/submit-kestrel_n1.sh'
 density= 1.2
@@ -84,12 +84,7 @@ def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, bac
         except:
             print('[WARN] Cant delete: ', rotated_mesh_2d)
 
-    
-
-
-
     # --- Change yaml file
-
     yml = yml_in.copy()
     # Shortcuts 
     ti = yml.data['Time_Integrators'][0]['StandardTimeIntegrator']

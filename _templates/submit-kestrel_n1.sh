@@ -7,12 +7,13 @@
 #SBATCH --mail-user=ebranlard@umass.edu
 #SBATCH --mail-type ALL # Send e-mail when job begins, ends or fails
 #SBATCH --output=slurm-%x.log   # Output %j: job number, %x: jobname
-#SBATCH --account=umassebra
+#SBATCH --account=stable
+#--SBATCH --account=umassebra
 
 # --------------------- INPUT ----------------------------
 ENV=exawind-cpu
 nalu_exec=naluX
-nalu_input=input.yaml
+nalu_inputs=("input.yaml")
 EXAWIND_MANAGER=/scratch/ebranlar/exawind-manager
 
 # ------------------- MODULES ----------------------------
@@ -52,18 +53,22 @@ ls -alh
 echo "#>>> module list    ="
 module list
 # ---- END DEBUG
-echo "------------------------------------------------------------------------------"
-echo "------------------------------------------------------------------------------"
-echo "------------------------------------------------------------------------------"
-echo "#>>> Starting NALU  =  -n ${SLURM_NTASKS}   ${nalu_exec} ${nalu_input}"
-srun -u -N1 -n96 --ntasks-per-node=96 --distribution=block:cyclic --cpu_bind=cores  ${nalu_exec} -i ${nalu_input} 
+for nalu_input in "${nalu_inputs[@]}"; do
+    echo "------------------------------------------------------------------------------"
+    echo "------------------------------------------------------------------------------"
+    echo "------------------------------------------------------------------------------"
+    echo "#>>> Starting NALU  =  -n ${SLURM_NTASKS}   ${nalu_exec} ${nalu_input}"
+    echo "#>>>              on: $(date)"
+    srun -u -N$SLURM_NNODES -n96 --ntasks-per-node=96 --distribution=block:cyclic --cpu_bind=cores \
+        ${nalu_exec} -i ${nalu_input}
+    echo "#>>> Done         on: $(date)"
+    echo "------------------------------------------------------------------------------"
+    echo "------------------------------------------------------------------------------"
+done
+echo "#>>> Ending job      on:  $(date)"
+
 #srun -u -N3 -n312 --ntasks-per-node=104 --distribution=cyclic:cyclic --cpu_bind=cores ${nalu_exec} -i ${nalu_input} 
 #srun -u -N6 -n312 --ntasks-per-node=52 --distribution=cyclic:cyclic --cpu_bind=cores ${nalu_exec} -i ffa_w3_211_static_aoa_30.yaml -o log.out 
-echo "Done"
-echo "------------------------------------------------------------------------------"
-echo "------------------------------------------------------------------------------"
-echo "#>>> Ending job on:  $(date)"
-
 #--- Shreyas
 #srun -u -N4 -n384 --ntasks-per-node=96 --distribution=block:cyclic --cpu_bind=map_cpu:0,52,13,65,26,78,39,91,1,53,14,66,27,79,40,92,2,54,15,67,28,80,41,93,3,55,16,68,29,81,42,94,4,56,17,69,30,82,43,95,5,57,18,70,31,83,44,96,6,58,19,71,32,84,45,97,7,59,20,72,33,85,46,98,8,60,21,73,34,86,47,99,9,61,22,74,35,87,48,100,10,62,23,75,36,88,49,101,11,63,24,76,37,89,50,102,12,64,25,77,38,90,51,103 ${nalu_exec} -i $grids${list_of_cases[$idx]}/ffa_w3_211_static_${list_of_cases[$idx]}.yaml -o $grids${list_of_cases[$idx]}/log$idx.out &
 

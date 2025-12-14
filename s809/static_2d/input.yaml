@@ -150,7 +150,7 @@ realms:
       value: 9.0e-06
     target_name: fluid-quad
 # Mesh
-  mesh: ../grids/S809_Re=100k_AoA8_nSpan=24_lfac10_quads.exo
+  mesh: ../grids/S809_l600_m145_n1_re0.1M_y19mu.exo
   name: realm_1
 # Outputs
   output:

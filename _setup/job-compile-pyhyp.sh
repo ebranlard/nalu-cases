@@ -55,6 +55,7 @@ echo "---------------------- REQUIREMENTS -------------------------"
 #echo "# Modules: "
 #module purge
 #module load openmpi/5.0.3
+module load python
 
 # List of required commands
 required_commands=("gfortran" "gcc" "cmake" "valgrind" "swig")
@@ -77,6 +78,7 @@ if [ "$missing" -ne 0 ]; then
 # sudo apt-get install f2py3
 # sudo apt-get install python3-numpy
     echo ""
+    echo "  (Note: on kestrel, comment the exit below)"
     exit 1
 else
     echo "[ OK ] Commands already present."
@@ -188,7 +190,7 @@ if [ ! -f "$PETSC_LIB" ]; then
     cd $LIB_DIR/petsc
     echo ">>> CONFIGURE PETSC"
     git describe
-    ./configure --PETSC_ARCH=$PETSC_ARCH --with-scalar-type=real --with-debugging=1 --with-mpi-dir=$MPI_INSTALL_DIR --download-metis=yes --download-parmetis=yes --download-superlu_dist=yes --with-shared-libraries=yes --with-fortran-bindings=1 --with-cxx-dialect=C++11
+    ./configure --PETSC_ARCH=$PETSC_ARCH --with-scalar-type=real --with-debugging=1 --with-mpi-dir=$MPI_INSTALL_DIR --download-metis=yes --download-parmetis=yes --download-superlu_dist=yes --with-shared-libraries=yes --with-fortran-bindings=1 --with-cxx-dialect=C++11 --download-fblaslapack=1
     echo ">>> MAKE PETSC"
     make -j 12 PETSC_DIR=$PETSC_DIR PETSC_ARCH=$PETSC_ARCH all
     #make -j 12 PETSC_DIR=$PETSC_DIR PETSC_ARCH=$PETSC_ARCH test

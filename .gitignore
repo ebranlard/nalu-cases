@@ -10,6 +10,7 @@ sideset*
 
 
 _*
+!_templates/
 
 !_setup/
 
@@ -32,6 +33,18 @@ scp*.bat
 
 
 
+*.pdf
 *.png
 *.mp4
 *.avi
+
+
+cases*
+
+
+*_airfoil.txt
+
+
+*_bkp
+*_old
+*_unity

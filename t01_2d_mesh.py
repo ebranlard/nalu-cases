@@ -23,16 +23,14 @@ mesh_dir    ='meshes'
 # ]
 
 db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
-db = db.select({'Rougthness':'clean'})
+db = db.select({'Roughness':'Clean'})
 db = db.query('airfoil!="L303"') # No geometry for L303
 airfoil_names = db.configs['airfoil'].unique()
 
 
-
-
 l_res=600
 
-Reynolds = [0.1, 0.5, 0.75, 1, 2, 5, 10] # Milliions
+# Reynolds = [0.1, 0.5, 0.75, 1, 2, 5, 10] # Milliions
 #Reynolds = [1] # Milliions
 
 
@@ -72,7 +70,7 @@ for airfoil_name in airfoil_names:
 
 
     for re in Reynolds:
-        output_file = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re}M_y{yplus}mu.exo')
+        output_file = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
         if not os.path.exists(output_file):
             print(f'Creating mesh for {airfoil_name} with Re={re}M, N={N}, y+={yplus}')
             try:
@@ -82,6 +80,8 @@ for airfoil_name in airfoil_names:
                 FAILED.append((airfoil_name, re, N, yplus))	
         else:
             print(f'[SKIP] {airfoil_name} {re}')
+
+#         import pdb; pdb.set_trace()
 
 for failed in FAILED:
 	print(f'Failed to create mesh for {failed[0]} with Re={failed[1]}M, N={failed[2]}, y+={failed[3]}')
