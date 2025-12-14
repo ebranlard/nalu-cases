@@ -27,6 +27,9 @@ db = db.select({'Roughness':'Clean'})
 db = db.query('airfoil!="L303"') # No geometry for L303
 airfoil_names = db.configs['airfoil'].unique()
 
+# airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
+airfoil_names = ['nlf1-0416'] 
+
 
 l_res=600
 
@@ -65,9 +68,18 @@ for airfoil_name in airfoil_names:
     db_arf = db.select({'airfoil':airfoil_name})
     Reynolds = db_arf.configs['Re'].round(1).unique()
 
-    Reynolds = np.unique(list(Reynolds) + [0.1, 0.5, 0.75, 1, 2, 5, 10])
-    print('Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
-
+    if len(db_arf)==0:
+        if airfoil_name == 'du00-w-212':
+            Reynolds=[3]; re=Reynolds[0]
+        elif airfoil_name == 'nlf1-0416':
+            Reynolds=[4]; re=Reynolds[0]
+        elif airfoil_name == 'ffa-w3-211':
+            Reynolds=[10]; re=Reynolds[0]
+        else:
+            raise NotImplementedError(airfoil_name)
+    else:
+        Reynolds = np.unique(list(Reynolds) + [0.1, 0.5, 0.75, 1, 2, 5, 10])
+        print('Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
 
     for re in Reynolds:
         output_file = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')

@@ -27,7 +27,7 @@ airfoil_out_dir ='airfoil_meshes'
 db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
 db = db.select({'Roughness':'Clean'})
 db = db.query('airfoil!="L303"') # No geometry for L303
-airfoil_names = db.configs['airfoil'].unique()
+airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
 
 
 # Loop on airfoils, and resample the data
@@ -38,7 +38,10 @@ if not os.path.exists(airfoil_out_dir):
 for arf_name in airfoil_names:
     print(f'---------------------- {arf_name} --------------------------')
     # Find the CSV file for the current airfoil
-    csv_file_in = os.path.join(airfoil_dir, f'{arf_name}.csv')
+    if arf_name in ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']:
+        csv_file_in = os.path.join('airfoils', f'{arf_name}.csv')
+    else:
+        csv_file_in = os.path.join(airfoil_dir, f'{arf_name}.csv')
     csv_file_out = os.path.join(airfoil_out_dir, f'{arf_name}_l{l}.csv')
     fig_file_out = os.path.join(airfoil_out_dir, f'{arf_name}_l{l}.png')
 

@@ -53,8 +53,8 @@ db = db.select({'Roughness':'Clean'})
 db = db.query('airfoil!="L303"') # No geometry for L303
 airfoil_names = db.configs['airfoil'].unique()
 
-# airfoil_names =  list(airfoil_names) + ['du00-w2-212', 'nfl1-0416'] 
-airfoil_names = ['du00-w2-212', 'nfl1-0416']  +  list(airfoil_names)
+# airfoil_names =  list(airfoil_names) + ['du00-w2-212', 'nlf1-0416'] 
+airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
 
 print(f'-------------------------------- SETUP ---------------------------------')
 print(f'cluster      : {cluster}')
@@ -75,19 +75,22 @@ for airfoil_name in airfoil_names:
 
     Reynolds = db_arf.configs['Re'].round(1).unique()
 
-    # --- HACK ['du00-w2-212', 'nfl1-0416', 'ffa'], not in database:
+    # --- HACK ['du00-w-212', 'nlf1-0416', 'ffa'], not in database:
     hack=False
     if len(db_arf)==0:
         hack=True
-        if airfoil_name == 'du00-w2-212':
-            mesh_file_2d = './du00-w-212/grids/du00w212_re3M_y03_aoa0_n1.exo'
-            Reynolds=[3]
-        elif airfoil_name == 'nfl1-0416':
-            mesh_file_2d = './nfl1-0416/grids/nlf1-0416_re4M_y2_aoa0_n1.exo'
-            Reynolds=[4]
-        elif airfoil_name == 'ffa':
-            mesh_file_2d = './ffa/grids/ffa_w3_211_near_body_aoa0_n1.exo'
-            Reynolds=[10]
+        if airfoil_name == 'du00-w-212':
+            Reynolds=[3]; re=Reynolds[0]
+            #mesh_file_2d = './du00-w-212/grids/du00w212_re3M_y03_aoa0_n1.exo'
+            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
+        elif airfoil_name == 'nlf1-0416':
+            Reynolds=[4]; re=Reynolds[0]
+            #mesh_file_2d = './nl1-0416/grids/nlf1-0416_re4M_y2_aoa0_n1.exo'
+            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
+        elif airfoil_name == 'ffa-w3-211':
+            Reynolds=[10]; re=Reynolds[0]
+            #mesh_file_2d = './ffa/grids/ffa_w3_211_near_body_aoa0_n1.exo'
+            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
         else:
             raise NotImplementedError(airfoil_name)
 
