@@ -27,6 +27,7 @@ airfoil_out_dir ='airfoil_meshes'
 db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
 db = db.select({'Roughness':'Clean'})
 db = db.query('airfoil!="L303"') # No geometry for L303
+airfoil_names = db.configs['airfoil'].unique()
 airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
 
 
