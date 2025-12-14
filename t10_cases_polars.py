@@ -41,8 +41,13 @@ else:
     hours=2
 
 chord=1
-density= 1.2
-viscosity = 9.0e-06
+DENSITY= 1.2
+VISCOSITY = 9.0E-06
+SPECIFIC_DISSIPATION_RATE= 114.54981120000002
+TURBULENT_KE= 0.0013020495206400003
+DT_FACT=0.02
+
+
 # TODO TI
 N = 150
 yplus=0.1
@@ -74,6 +79,12 @@ for airfoil_name in airfoil_names:
     db_arf = db.select({'airfoil':airfoil_name})
 
     Reynolds = db_arf.configs['Re'].round(1).unique()
+    density=DENSITY
+    viscosity=VISCOSITY
+    dt_fact=DT_FACT
+    specific_dissipation_rate= SPECIFIC_DISSIPATION_RATE
+    turbulent_ke=TURBULENT_KE
+
 
     # --- HACK ['du00-w-212', 'nlf1-0416', 'ffa'], not in database:
     hack=False
@@ -83,16 +94,29 @@ for airfoil_name in airfoil_names:
             Reynolds=[3]; re=Reynolds[0]
             #mesh_file_2d = './du00-w-212/grids/du00w212_re3M_y03_aoa0_n1.exo'
             mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
+            density=1.225
+            viscosity=1.392416666666667e-05
+            dt_fact=0.55
         elif airfoil_name == 'nlf1-0416':
             Reynolds=[4]; re=Reynolds[0]
             #mesh_file_2d = './nl1-0416/grids/nlf1-0416_re4M_y2_aoa0_n1.exo'
             mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
+            density=1.225
+            viscosity=1.0443125000000002e-05
+            specific_dissipation_rate= 460.34999999999997
+            turbulent_ke=0.00392448375
+            dt_fact=0.55
+
+
         elif airfoil_name == 'ffa-w3-211':
             Reynolds=[10]; re=Reynolds[0]
             #mesh_file_2d = './ffa/grids/ffa_w3_211_near_body_aoa0_n1.exo'
             mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
         else:
             raise NotImplementedError(airfoil_name)
+    if airfoil_name not in ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']:
+        break
+
 
     Reynolds.sort()
     Reynolds = Reynolds[-1::-1]
@@ -130,10 +154,19 @@ for airfoil_name in airfoil_names:
         af = realms[-1]
         af['mesh'] = os.path.relpath(mesh_file_2d, sim_dir).replace('\\', '/')
         U = float(re*1e6 *viscosity /(density * chord ))
-        dt = float(np.around(0.02 * chord / U, 8))
+        dt = float(np.around(dt_fact * chord / U, 8))
         yml.velocity = [U, 0, 0]
         yml.density = density
         yml.viscosity = viscosity
+
+        yml.inflow_turbulent_ke               = turbulent_ke
+        yml.outflow_turbulent_ke              = turbulent_ke
+        yml.IC_turbulent_ke                   = turbulent_ke
+        yml.inflow_specific_dissipation_rate  = specific_dissipation_rate
+        yml.outflow_specific_dissipation_rate = specific_dissipation_rate
+        yml.IC_specific_dissipation_rate      = specific_dissipation_rate
+
+
         ti['time_step'] = dt
         # ti['termination_step_count'] = int(np.max(t)/dt)
         yml.save(default_yaml_file)
@@ -146,6 +179,7 @@ for airfoil_name in airfoil_names:
                   jobname=jobname+'_',
                   submit=submit,
                   one_job=one_job,
+                  raiseError=False, # <<<<<<<<<<<<
                   hours=hours, nodes=nodes, ntasks=ntasks, mem=mem, cluster=cluster)
                   #sim_dir = sim_dir,
 
@@ -161,9 +195,6 @@ for airfoil_name in airfoil_names:
                 f.write(f'{prefix}{bb}\n')
         print('SBatch:    ', sbatch_file)
 
-
-        break
-    break
 
 # --- 
 sbatch_file_all='_bashes_'+os.path.basename(__file__).replace('.py', '_list.sh')

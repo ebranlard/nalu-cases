@@ -48,3 +48,9 @@ cases*
 *_bkp
 *_old
 *_unity
+
+ffa/static/input_old.yaml
+ffa/static/input_shreyas.yaml
+ffa/static/input_sorted.yaml
+ffa/static_2d/input_sorted.yaml
+ffa/static_polar_2dt/
