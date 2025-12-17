@@ -59,7 +59,7 @@ for nalu_input in "${nalu_inputs[@]}"; do
     echo "------------------------------------------------------------------------------"
     echo "#>>> Starting NALU  =  -n ${SLURM_NTASKS}   ${nalu_exec} ${nalu_input}"
     echo "#>>>              on: $(date)"
-    srun -u -N$SLURM_NNODES -n96 --ntasks-per-node=96 --distribution=block:cyclic --cpu_bind=cores \
+    srun -u -N$SLURM_NNODES -n$SLURM_TASKS_PER_NODE --ntasks-per-node=$SLURM_TASKS_PER_NODE --distribution=block:cyclic --cpu_bind=cores \
         ${nalu_exec} -i ${nalu_input}
     echo "#>>> Done         on: $(date)"
     echo "------------------------------------------------------------------------------"
