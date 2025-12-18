@@ -32,7 +32,7 @@ if 'ebranlard' in current_path: # Unity
 elif 'ebranlar' in current_path: # Kestrel
     cluster = 'kestrel'
     batch_template ='_templates/submit-kestrel_n1.sh'
-    hours=2
+    hours=0.5
 else:
     #cluster = 'local'
     #batch_template =None
@@ -60,6 +60,8 @@ airfoil_names = db.configs['airfoil'].unique()
 
 # airfoil_names =  list(airfoil_names) + ['du00-w2-212', 'nlf1-0416'] 
 airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
+airfoil_names = ['NACA4415','S815']
+# airfoil_names = ['S809']
 
 print(f'-------------------------------- SETUP ---------------------------------')
 print(f'cluster      : {cluster}')
@@ -79,6 +81,7 @@ for airfoil_name in airfoil_names:
     db_arf = db.select({'airfoil':airfoil_name})
 
     Reynolds = db_arf.configs['Re'].round(1).unique()
+    Reynolds = [0.75, 1.0, 1.25, 1.4, 1.5]
     density=DENSITY
     viscosity=VISCOSITY
     dt_fact=DT_FACT
@@ -114,8 +117,8 @@ for airfoil_name in airfoil_names:
             mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
         else:
             raise NotImplementedError(airfoil_name)
-    if airfoil_name not in ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']:
-        break
+#     if airfoil_name not in ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']:
+#         break
 
 
     Reynolds.sort()

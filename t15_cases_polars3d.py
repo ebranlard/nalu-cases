@@ -12,7 +12,7 @@ from nalulib.exodus_quads2hex import exo_zextrude
 
 # --- Main inputs
 submit=False
-nT_steady=20
+nT_steady=120
 
 nSpan = 4
 aseq = np.arange(-20, 25+3/2, 5)
@@ -31,8 +31,8 @@ if 'ebranlard' in current_path: # Unity
     cluster = 'unity'
     batch_template ='_templates/submit-unity.sh'
     ntasks=92 #TODO TODO Unity
-    hours={4:8, 121:48}[nSpan]
-    nodes={4:1, 121:1}[nSpan]
+    hours={4:16, 121:48}[nSpan]
+    nodes={4:1 , 121:1}[nSpan]
 elif 'ebranlar' in current_path: # Kestrel
     cluster = 'kestrel'
     batch_template ='_templates/submit-kestrel.sh'
