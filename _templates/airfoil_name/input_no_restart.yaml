@@ -325,7 +325,7 @@ realms:
 #     - iblank_cell
   post_processing:
   - frequency: 1
-    output_file_name: _forces_pp.csv
+    output_file_name: forces_pp.csv
     parameters:
     - 0
     - 0
@@ -334,7 +334,7 @@ realms:
     - wing-pp
     type: surface
   - frequency: 1
-    output_file_name: _forces.csv
+    output_file_name: forces.csv
     parameters:
     - 0
     - 0

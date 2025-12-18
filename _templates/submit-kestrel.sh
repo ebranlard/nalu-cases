@@ -27,8 +27,7 @@ echo "# >>> Activating environment  : ${ENV}"
 spack env activate -d "${EXAWIND_MANAGER}/environments/${ENV}"  || exit 1
 spack load exawind
 
-ranks_per_node=104
-mlupi_ranks=$(expr $SLURM_JOB_NUM_NODES \* $ranks_per_node)
+NRANKS=$(expr $SLURM_JOB_NUM_NODES \* $SLURM_TASKS_PER_NODE)
 export OMP_NUM_THREADS=1  # Max hardware threads = 4
 export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
@@ -38,7 +37,7 @@ echo "#>>> JOB_NAME        = $SLURM_JOB_NAME"
 echo "#>>> JOBID           = $SLURM_JOBID"
 echo "#>>> JOB_NUM_NODES   = $SLURM_JOB_NUM_NODES"
 echo "#>>> NNODES          = $SLURM_NNODES"
-echo "#>>> NTASKS          = $SLURM_NTASKS   $SLURM_NPROCS"
+echo "#>>> NTASKS          = $NRANKS  - $SLURM_NTASKS - $SLURM_NPROCS"
 echo "#>>> NTASKS_PER_CORE = $SLURM_NTASKS_PER_CORE"
 echo "#>>> TASKS_PER_NODE  = $SLURM_TASKS_PER_NODE"
 echo "#>>> MEM_PER_NODE    = $SLURM_MEM_PER_NODE"
@@ -59,7 +58,7 @@ for nalu_input in "${nalu_inputs[@]}"; do
     echo "------------------------------------------------------------------------------"
     echo "#>>> Starting NALU  =  -n ${SLURM_NTASKS}   ${nalu_exec} ${nalu_input}"
     echo "#>>>              on: $(date)"
-    srun -u -N$SLURM_NNODES -n384 --ntasks-per-node=96 --distribution=block:cyclic --cpu_bind=cores \
+    srun -u -N$SLURM_NNODES -n$NRANKS --ntasks-per-node=$SLURM_TASKS_PER_NODE --distribution=block:cyclic --cpu_bind=cores \
         ${nalu_exec} -i ${nalu_input}
     echo "#>>> Done         on: $(date)"
     echo "------------------------------------------------------------------------------"
