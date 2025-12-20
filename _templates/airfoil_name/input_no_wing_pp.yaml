@@ -250,15 +250,6 @@ realms:
       - 0
       - 0
       - 0
-  - target_name: wing-pp
-    wall_boundary_condition: bc_wing_pp
-    wall_user_data:
-      turbulent_ke: 0.0
-      use_wall_function: false
-      velocity:
-      - 0
-      - 0
-      - 0
   - periodic_boundary_condition: bc_front_back_wing
     periodic_user_data:
       search_tolerance: 1.0e-08
@@ -277,7 +268,6 @@ realms:
         - outlet
         wall_parts:
         - wing
-        - wing-pp
       mesh_tag_offset: 1
       tioga_options: *id001
   check_for_missing_bcs: true
@@ -328,15 +318,6 @@ realms:
 #     - iblank_cell
   post_processing:
   - frequency: 1
-    output_file_name: forces_pp.csv
-    parameters:
-    - 0
-    - 0
-    physics: surface_force_and_moment
-    target_name:
-    - wing-pp
-    type: surface
-  - frequency: 1
     output_file_name: forces.csv
     parameters:
     - 0
@@ -344,7 +325,6 @@ realms:
     physics: surface_force_and_moment
     target_name:
     - wing
-    - wing-pp
     type: surface
   rebalance_mesh: true
   restart:

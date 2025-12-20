@@ -99,7 +99,7 @@ for airfoil_name in airfoil_names:
             mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
             density=1.225
             viscosity=1.392416666666667e-05
-            dt_fact=0.55
+            #dt_fact=0.55
         elif airfoil_name == 'nlf1-0416':
             Reynolds=[4]; re=Reynolds[0]
             #mesh_file_2d = './nl1-0416/grids/nlf1-0416_re4M_y2_aoa0_n1.exo'
@@ -108,7 +108,7 @@ for airfoil_name in airfoil_names:
             viscosity=1.0443125000000002e-05
             specific_dissipation_rate= 460.34999999999997
             turbulent_ke=0.00392448375
-            dt_fact=0.55
+            #dt_fact=0.55
 
 
         elif airfoil_name == 'ffa-w3-211':
@@ -138,7 +138,7 @@ for airfoil_name in airfoil_names:
             continue
 
         jobname = airfoil_name + '_re{:04.1f}M'.format(re)
-        sim_dir = os.path.join(case_dir, airfoil_name + '_re{:04.1f}M'.format(re))
+        sim_dir = os.path.join(case_dir, jobname)
         print('sim_dir:   ', sim_dir)
         if not os.path.exists(sim_dir):
             os.makedirs(sim_dir)

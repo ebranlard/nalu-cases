@@ -47,6 +47,8 @@ else:
     batch_template ='_templates/submit-bash.sh'
     hours=2
 
+
+
 chord=1
 DENSITY= 1.2
 VISCOSITY = 9.0E-06
@@ -172,6 +174,11 @@ for ia, airfoil_name in enumerate(airfoil_names):
             os.makedirs(local_mesh_dir)
 
 
+        # --- Scales
+        U = float(re*1e6 *viscosity /(density * chord ))
+        dt = float(np.around(dt_fact * chord / U, 8))
+        T = chord/U*nT_steady
+
 
         # --- Creating meshes
         extruded_mesh = os.path.join(local_mesh_dir, 'input_mesh'+'_n{}.exo'.format(nSpan))
@@ -191,13 +198,11 @@ for ia, airfoil_name in enumerate(airfoil_names):
         af = realms[1]
         bg['mesh'] = os.path.relpath(background_3d, sim_dir).replace('\\', '/')
         af['mesh'] = os.path.relpath(extruded_mesh, sim_dir).replace('\\', '/')
+        if 'restart' in bg:
+            bg['restart']['restart_data_base_name'] = 'restart/'+jobname+'_bg'
+            af['restart']['restart_data_base_name'] = 'restart/'+jobname+'_arf'
 
-
-
-        U = float(re*1e6 *viscosity /(density * chord ))
-        dt = float(np.around(dt_fact * chord / U, 8))
-        T = chord/U*nT_steady
-
+        # Flow variables
         yml.velocity = [U, 0, 0]
         yml.density = density
         yml.viscosity = viscosity
@@ -209,6 +214,7 @@ for ia, airfoil_name in enumerate(airfoil_names):
         yml.outflow_specific_dissipation_rate = specific_dissipation_rate
         yml.IC_specific_dissipation_rate      = specific_dissipation_rate
 
+        # Time
         ti['time_step'] = dt
         ti['termination_step_count'] = int(T/dt)
 
@@ -216,8 +222,8 @@ for ia, airfoil_name in enumerate(airfoil_names):
         # --- Output
         if 'output' in bg:
             #bg['output']['output_data_base_name'] # handled by polar_aseq
-            bg['output']['output_frequency'] = int(T/dt)-2
-            af['output']['output_frequency'] = int(T/dt)-2
+            bg['output']['output_frequency'] = int(T/dt)-1
+            af['output']['output_frequency'] = int(T/dt)-1
 
         yml.save(default_yaml_file)
         print('Main yaml: ', default_yaml_file)
