@@ -12,8 +12,10 @@ from nalulib.exodus_quads2hex import exo_zextrude
 
 # --- Main inputs
 submit=False
-nT_steady=120
+nT_steady=60
 
+nSpan = 121
+nSpan = 24
 nSpan = 4
 aseq = np.arange(-20, 25+3/2, 5)
 # aseq = np.arange(-2, 3+3/2, 1)
@@ -22,7 +24,7 @@ one_job = False
 
 mesh_dir    ='meshes'
 case_dir    ='cases_polar3d_n{}'.format(nSpan)
-nalu_template ='_templates/airfoil_name/input_no_restart.yaml'
+nalu_template ='_templates/airfoil_name/input_no_restart_with_output.yaml'
 current_path = os.getcwd()
 mem=None
 nodes=1
@@ -36,8 +38,8 @@ if 'ebranlard' in current_path: # Unity
 elif 'ebranlar' in current_path: # Kestrel
     cluster = 'kestrel'
     batch_template ='_templates/submit-kestrel.sh'
-    hours={4:8, 121:48}[nSpan]
-    nodes={4:1,  121:8}[nSpan]
+    hours={4:3, 24:8, 121:48}[nSpan]
+    nodes={4:1, 24:2, 121:8}[nSpan]
 else:
     #cluster = 'local'
     #batch_template =None
@@ -66,6 +68,7 @@ airfoil_names = db.configs['airfoil'].unique()
 # airfoil_names =  list(airfoil_names) + ['du00-w2-212', 'nlf1-0416'] 
 # airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
 airfoil_names = ['S809']
+airfoil_names += ['du00-w-212', 'ffa-w3-211', 'nlf1-0416']
 
 print(f'-------------------------------- SETUP ---------------------------------')
 print(f'cluster      : {cluster}')
@@ -90,111 +93,6 @@ yml_template = NALUInputFile(nalu_template)
 
 
 
-# def create_case(alpha_mean, nT_steady, re, mesh_file_2d, background_3d, nalu_template, sim_dir, basename, nSpan=4, density=1.2, viscosity=9.0e-6, chord=1, batch_template=None, nramp=5):
-# 
-#     if isinstance(nalu_template, str):
-#         yml_in = NALUInputFile(nalu_template)
-#     else:
-#         yml_in = nalu_template
-# 
-#     sim_dir = os.path.join(case_dir, airfoil_name)
-#     local_mesh_dir = os.path.join(sim_dir, 'meshes')
-#     if not os.path.exists(sim_dir):
-#         os.makedirs(sim_dir)
-#     if not os.path.exists(local_mesh_dir):
-#         os.makedirs(local_mesh_dir)
-# 
-#     U = float(re*1e6 *viscosity /(density * chord ))
-#     dt = float(np.around(0.02 * chord / U, 8))
-#     T = chord/U*nT_steady
-# 
-# 
-#     basename_ReMean = basename+'_'+'re{:04.1f}_mean{:02d}'.format(re, int(alpha_mean))
-#     basename = basename_ReMean+'_'+'A{:02d}'.format(int(amplitude))
-#     yaml_file = os.path.join(sim_dir, basename+'.yaml')
-# 
-# 
-#     # --- Creating meshes
-#     rotated_mesh_2d  = os.path.join(local_mesh_dir, basename_ReMean+'_n1.exo')
-#     extruded_mesh_2d = os.path.join(local_mesh_dir, basename_ReMean+'_n{}.exo'.format(nSpan))
-#     if not os.path.exists(extruded_mesh_2d):
-#         if not os.path.exists(rotated_mesh_2d):
-#             print('Rotating mesh: ', rotated_mesh_2d, alpha_mean)
-#             exo_rotate(mesh_file_2d, rotated_mesh_2d, angle=alpha_mean, center=(0,0), angle_center=None, 
-#                           inlet_start=None, inlet_span=None, outlet_start=None, keep_io_side_set=False, 
-#                           inlet_name='inlet', outlet_name='outlet',
-#                           verbose=False, profiler=False, debug=False)
-#         print('Extrudingmesh: ', extruded_mesh_2d, nSpan)
-#         exo_zextrude(rotated_mesh_2d, extruded_mesh_2d, nSpan=nSpan, zSpan=4.0, zoffset=0.0, verbose=False, airfoil2wing=True, ss_wing_pp=True, profiler=False, ss_suffix=None)
-#         try:
-#             os.remove(rotated_mesh_2d)
-#         except:
-#             print('[WARN] Cant delete: ', rotated_mesh_2d)
-# 
-# 
-#     # --- Change yaml file
-# 
-#     yml = yml_in.copy()
-#     # Shortcuts 
-#     ti = yml.data['Time_Integrators'][0]['StandardTimeIntegrator']
-#     realms = yml.data['realms']
-# 
-#     bg = realms[0]
-#     af = realms[1]
-#     bg['mesh'] = os.path.relpath(background_3d, sim_dir).replace('\\', '/')
-#     af['mesh'] = os.path.relpath(extruded_mesh_2d, sim_dir).replace('\\', '/')
-# 
-#     if 'restart' in bg:
-#         bg['restart']['restart_data_base_name'] = 'restart/'+basename_ReMean+'_bg'
-#         af['restart']['restart_data_base_name'] = 'restart/'+basename_ReMean+'_arf'
-# 
-# 
-#     if not os.path.exists(os.path.join(sim_dir,'forces')):
-#         os.makedirs(os.path.join(sim_dir,'forces'))
-# 
-#     pp = af['post_processing'][0]['output_file_name'] = 'forces/'+basename+'_pp.csv'
-#     pp = af['post_processing'][1]['output_file_name'] = 'forces/'+basename+'.csv'
-# 
-# 
-#     yml.velocity = [U, 0, 0]
-#     yml.density = density
-#     yml.viscosity = viscosity
-#     ti['time_step'] = dt
-# 
-#     t_steady = T
-#     t, x, y, theta = yml.set_step_motion(A=-amplitude, t_steady=t_steady, dt=dt, DOF='pitch', irealm=1, nramp=nramp)
-# 
-#     ti['termination_step_count'] = int(np.max(t)/dt)
-# 
-# 
-#     if batch_template is not None:
-#         batch_file = nalu_batch(batch_template, nalu_input_file=yaml_file, jobname='s'+basename, sim_dir=sim_dir, mail=True)
-#     else:
-#         batch_file =None
-# 
-#     yml.save(yaml_file)
-#     return yaml_file, batch_file
-# 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 All_Batches = []
 All_Inputs  = []
 
@@ -204,7 +102,7 @@ for ia, airfoil_name in enumerate(airfoil_names):
     db_arf = db.select({'airfoil':airfoil_name})
 
     Reynolds = db_arf.configs['Re'].round(2).unique()
-    RE_expected = np.array([0.8, 1.0, 1.2, 1.4, 1.5]) # 0.75, 1.0, 1.25, 1.3, 1.4, 1.5]
+    RE_expected = np.array([0.8, 1.0, 1.2, 1.4, 1.5, 3.0]) # 0.75, 1.0, 1.25, 1.3, 1.4, 1.5]
     RE = []
     for re in Reynolds:
         i=np.argmin(np.abs(re- RE_expected))
@@ -294,6 +192,8 @@ for ia, airfoil_name in enumerate(airfoil_names):
         bg['mesh'] = os.path.relpath(background_3d, sim_dir).replace('\\', '/')
         af['mesh'] = os.path.relpath(extruded_mesh, sim_dir).replace('\\', '/')
 
+
+
         U = float(re*1e6 *viscosity /(density * chord ))
         dt = float(np.around(dt_fact * chord / U, 8))
         T = chord/U*nT_steady
@@ -311,6 +211,13 @@ for ia, airfoil_name in enumerate(airfoil_names):
 
         ti['time_step'] = dt
         ti['termination_step_count'] = int(T/dt)
+
+
+        # --- Output
+        if 'output' in bg:
+            #bg['output']['output_data_base_name'] # handled by polar_aseq
+            bg['output']['output_frequency'] = int(T/dt)-2
+            af['output']['output_frequency'] = int(T/dt)-2
 
         yml.save(default_yaml_file)
         print('Main yaml: ', default_yaml_file)
@@ -348,8 +255,8 @@ for ia, airfoil_name in enumerate(airfoil_names):
         if iRe==0:
             break
 
-    if ia==0:
-        break
+#     if ia==0:
+#         break
 
 
 # --- 

@@ -9,6 +9,7 @@
 #SBATCH --output=slurm-%x.log   # Output %j: job number, %x: jobname
 #SBATCH --account=stable
 #--SBATCH --account=umassebra
+echo "#>>> Date            = `date`"
 
 # --------------------- INPUT ----------------------------
 ENV=exawind-cpu
@@ -27,7 +28,8 @@ echo "# >>> Activating environment  : ${ENV}"
 spack env activate -d "${EXAWIND_MANAGER}/environments/${ENV}"  || exit 1
 spack load exawind
 
-NRANKS=$(expr $SLURM_JOB_NUM_NODES \* $SLURM_TASKS_PER_NODE)
+TASKS_PER_NODE=${SLURM_TASKS_PER_NODE%%(*}
+NRANKS=$(expr $SLURM_JOB_NUM_NODES \* $TASKS_PER_NODE)
 export OMP_NUM_THREADS=1  # Max hardware threads = 4
 export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
@@ -37,15 +39,14 @@ echo "#>>> JOB_NAME        = $SLURM_JOB_NAME"
 echo "#>>> JOBID           = $SLURM_JOBID"
 echo "#>>> JOB_NUM_NODES   = $SLURM_JOB_NUM_NODES"
 echo "#>>> NNODES          = $SLURM_NNODES"
-echo "#>>> NTASKS          = $NRANKS  - $SLURM_NTASKS - $SLURM_NPROCS"
+echo "#>>> NTASKS          = $NRANKS  - S:$SLURM_NTASKS - $SLURM_NPROCS"
 echo "#>>> NTASKS_PER_CORE = $SLURM_NTASKS_PER_CORE"
-echo "#>>> TASKS_PER_NODE  = $SLURM_TASKS_PER_NODE"
+echo "#>>> TASKS_PER_NODE  = S:$SLURM_TASKS_PER_NODE - $TASKS_PER_NODE"
 echo "#>>> MEM_PER_NODE    = $SLURM_MEM_PER_NODE"
 echo "#>>> JOB_NODELIST    = $SLURM_JOB_NODELIST"
 echo "#>>> Num. MPI Ranks  = $mpi_ranks"
 echo "#>>> Num. threads    = $OMP_NUM_THREADS"
 echo "#>>> Working dir     = $PWD"
-echo "#>>> Date            = `date`"
 echo "#>>> Working directory $SLURM_SUBMIT_DIR"
 echo "#>>> Directory content:"
 ls -alh
@@ -56,9 +57,9 @@ for nalu_input in "${nalu_inputs[@]}"; do
     echo "------------------------------------------------------------------------------"
     echo "------------------------------------------------------------------------------"
     echo "------------------------------------------------------------------------------"
-    echo "#>>> Starting NALU  =  -n ${SLURM_NTASKS}   ${nalu_exec} ${nalu_input}"
+    echo "#>>> Starting NALU  = -N${SLURM_NNODES} -n ${SLURM_NTASKS}${NRANKS} --ntasks-per-node=$TASKS_PER_NODE ${nalu_exec} ${nalu_input}"
     echo "#>>>              on: $(date)"
-    srun -u -N$SLURM_NNODES -n$NRANKS --ntasks-per-node=$SLURM_TASKS_PER_NODE --distribution=block:cyclic --cpu_bind=cores \
+    srun -u -N$SLURM_NNODES -n$NRANKS --ntasks-per-node=$TASKS_PER_NODE --distribution=block:cyclic --cpu_bind=cores \
         ${nalu_exec} -i ${nalu_input}
     echo "#>>> Done         on: $(date)"
     echo "------------------------------------------------------------------------------"
