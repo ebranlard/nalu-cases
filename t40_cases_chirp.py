@@ -20,14 +20,54 @@ from nalulib.exodus_quads2hex import exo_zextrude
 
 
 # --- Main inputs
-nSpan = 4
+nSpan = 2
 nT_steady       = 10  # TODO 10 then 50
 K_TARGET        = 0.5 # TODO 0.6 or 1
 F0_FACTOR       = 1   # TODO 2 or 5
 N_CYCLES_DWELLS = 1   # TODO 5
 NCONV           = 20  # TODO 10 then 250
 NCYCLES_CHIRP   = 2   # TODO 2
+DT_FACT         = 0.05 # TODO 0.02
 PREFIX='SHORT_'
+# 
+# nSpan = 2
+# nT_steady       = 50  # TODO 10 then 50
+# K_TARGET        = 0.6 # TODO 0.6 or 1
+# F0_FACTOR       = 2   # TODO 2 or 5
+# N_CYCLES_DWELLS = 5   # TODO 5
+# NCONV           = 250  # TODO 10 then 250
+# NCYCLES_CHIRP   = 2   # TODO 2
+# DT_FACT         = 0.05 # TODO 0.02
+# PREFIX=''
+
+
+nSpan = 4
+nT_steady       = 50  # TODO 10 then 50
+K_TARGET        = 0.6 # TODO 0.6 or 1
+F0_FACTOR       = 2   # TODO 2 or 5
+N_CYCLES_DWELLS = 5   # TODO 5
+NCONV           = 250  # TODO 10 then 250
+NCYCLES_CHIRP   = 2   # TODO 2
+DT_FACT         = 0.05 # TODO 0.02
+PREFIX=''
+
+nSpan = 24
+nT_steady       = 50  # TODO 10 then 50
+K_TARGET        = 0.6 # TODO 0.6 or 1
+F0_FACTOR       = 2   # TODO 2 or 5
+N_CYCLES_DWELLS = 5   # TODO 5
+NCONV           = 250  # TODO 10 then 250
+NCYCLES_CHIRP   = 2   # TODO 2
+DT_FACT         = 0.05 # TODO 0.02
+PREFIX=''
+
+
+
+
+
+
+
+
 SS_WING_PP = False
 
 #Reynolds =[0.1, 0.5, 0.75, 1, 2, 5, 10]
@@ -63,9 +103,10 @@ if 'ebranlard' in current_path: # Unity
     nodes={4:1 , 121:1}[nSpan]
 elif 'ebranlar' in current_path: # Kestrel
     cluster = 'kestrel'
+    #batch_template ='_templates/submit-kestrel.sh'
     batch_template ='_templates/submit-kestrel.sh'
-    hours={2:24, 4:48, 24:8, 121:48}[nSpan]
-    nodes={2:1 , 4:1 , 24:2, 121:8}[nSpan]
+    hours={2:24, 4:48, 22:72, 24:72, 121:102}[nSpan]
+    nodes={2:1 , 4:1 , 22:2, 24:2,  121:8}[nSpan]
 else:
     #cluster = 'local'
     #batch_template =None
@@ -79,7 +120,6 @@ DENSITY= 1.2
 VISCOSITY = 9.0E-06
 SPECIFIC_DISSIPATION_RATE= 114.54981120000002
 TURBULENT_KE= 0.0013020495206400003
-DT_FACT=0.02
 
 N = 150
 yplus=0.1
@@ -96,12 +136,15 @@ airfoil_names = db.configs['airfoil'].unique()
 # airfoil_names =  list(airfoil_names) + ['du00-w2-212', 'nlf1-0416'] 
 # airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
 airfoil_names = ['S809']
-#airfoil_names += ['du00-w-212', 'ffa-w3-211', 'nlf1-0416']
+airfoil_names += ['du00-w-212', 'ffa-w3-211', 'nlf1-0416']
+airfoil_names = ['nlf1-0416']
+airfoil_names = ['du00-w-212']
 
 print(f'-------------------------------- SETUP ---------------------------------')
 print(f'cluster      : {cluster}')
 print(f'hours        : {hours}')
 print(f'ntasks       : {ntasks}')
+print(f'nodes        : {nodes}')
 print(f'airfoil_names: {airfoil_names}')
 
 
@@ -310,7 +353,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
 
     # --- Scales
     U = float(re*1e6 *viscosity /(density * chord ))
-    dt = float(np.around(0.02 * chord / U, 8))
+    dt = float(np.around(DT_FACT * chord / U, 8))
     T = chord/U*nT_steady
 
 
@@ -398,7 +441,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
         #af['output']['output_frequency'] = 1
 
     if batch_template is not None:
-        batch_file = nalu_batch(batch_template, nalu_input_file=yaml_file, jobname='s'+basename, sim_dir=sim_dir, mail=True)
+        batch_file = nalu_batch(batch_template, nalu_input_file=yaml_file, jobname='c'+f'_n{nSpan}_'+basename, sim_dir=sim_dir, mail=True, hours=hours, nodes=nodes, mem=mem, ntasks=ntasks)
     else:
         batch_file =None
 
@@ -487,11 +530,11 @@ for ia, airfoil_name in enumerate(airfoil_names):
             break
 
     # --- Write a batch file with all
-    sbatch_file = os.path.join(sim_dir, '_sbatch_all.sh')
-    with open(sbatch_file, 'w', newline="\n") as f:
-        for b in nalu_batches:
-            bb = os.path.relpath(b, sim_dir)
-            prefix='sbatch ' if cluster!='local' else ''
-            f.write(f'{prefix}{bb}\n')
-    print('SBatch:    ', sbatch_file)
+    #sbatch_file = os.path.join(sim_dir, '_sbatch_all.sh')
+    #with open(sbatch_file, 'w', newline="\n") as f:
+    #    for b in nalu_batches:
+    #        bb = os.path.relpath(b, sim_dir)
+    #        prefix='sbatch ' if cluster!='local' else ''
+    #        f.write(f'{prefix}{bb}\n')
+    #print('SBatch:    ', sbatch_file)
 

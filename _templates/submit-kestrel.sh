@@ -7,8 +7,8 @@
 #SBATCH --mail-user=ebranlard@umass.edu
 #SBATCH --mail-type ALL # Send e-mail when job begins, ends or fails
 #SBATCH --output=slurm-%x.log   # Output %j: job number, %x: jobname
-#SBATCH --account=stable
-#--SBATCH --account=umassebra
+#--SBATCH --account=stable
+#SBATCH --account=umassebra
 echo "#>>> Date            = `date`"
 
 # --------------------- INPUT ----------------------------
