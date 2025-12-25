@@ -19,7 +19,8 @@ nSpan = 121
 # nSpan = 4
 for nSpan in [121]:
     aseq = np.arange(-5, 20+3/2, 5)
-    # aseq = np.arange(-20, 25+3/2, 5)
+    aseq = np.arange(-5, 25+3/2, 2.5)
+    #aseq = np.arange(-20, 25+3/2, 5)
     # aseq = np.arange(-2, 3+3/2, 1)
     one_job = False
 
@@ -41,7 +42,7 @@ for nSpan in [121]:
         cluster = 'kestrel'
         batch_template ='_templates/submit-kestrel.sh'
         hours={4:3, 24:8, 121:48}[nSpan]
-        nodes={4:1, 24:2, 121:8}[nSpan]
+        nodes={4:1, 24:1, 121:1}[nSpan]
     else:
         #cluster = 'local'
         #batch_template =None

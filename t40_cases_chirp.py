@@ -62,6 +62,16 @@ DT_FACT         = 0.05 # TODO 0.02
 PREFIX=''
 
 
+nSpan = 121
+nT_steady       = 50  # TODO 10 then 50
+K_TARGET        = 0.6 # TODO 0.6 or 1
+F0_FACTOR       = 2   # TODO 2 or 5
+N_CYCLES_DWELLS = 5   # TODO 5
+NCONV           = 250  # TODO 10 then 250
+NCYCLES_CHIRP   = 2   # TODO 2
+DT_FACT         = 0.05 # TODO 0.02
+PREFIX=''
+
 
 
 
@@ -105,8 +115,8 @@ elif 'ebranlar' in current_path: # Kestrel
     cluster = 'kestrel'
     #batch_template ='_templates/submit-kestrel.sh'
     batch_template ='_templates/submit-kestrel.sh'
-    hours={2:24, 4:48, 22:72, 24:72, 121:102}[nSpan]
-    nodes={2:1 , 4:1 , 22:2, 24:2,  121:8}[nSpan]
+    hours={2:24, 4:48, 22:72, 24:102, 121:202}[nSpan]
+    nodes={2:1 , 4:1 , 22:2 , 24:1,   121:1}[nSpan]
 else:
     #cluster = 'local'
     #batch_template =None
@@ -137,8 +147,8 @@ airfoil_names = db.configs['airfoil'].unique()
 # airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
 airfoil_names = ['S809']
 airfoil_names += ['du00-w-212', 'ffa-w3-211', 'nlf1-0416']
-airfoil_names = ['nlf1-0416']
-airfoil_names = ['du00-w-212']
+# airfoil_names = ['nlf1-0416']
+# airfoil_names = ['du00-w-212']
 
 print(f'-------------------------------- SETUP ---------------------------------')
 print(f'cluster      : {cluster}')
