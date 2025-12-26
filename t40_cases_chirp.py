@@ -1,12 +1,6 @@
 import os
 import numpy as np
 import glob
-import json
-import yaml
-
-#import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
-
 
 from nalulib import pyhyp
 from nalulib.tools.dataframe_database import DataFrameDatabase
@@ -101,9 +95,6 @@ TURBULENT_KE= 0.0013020495206400003
 N = 150
 yplus=0.1
 
-
-
-
 # 
 db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
 db = db.select({'Roughness':'Clean'})
@@ -139,12 +130,14 @@ yml = NALUInputFile(nalu_template)
 
 
 
-def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3d, nalu_template, sim_dir, basename, nSpan=4, density=1.2, viscosity=9.0e-6, turbulent_ke=TURBULENT_KE, specific_dissipation_rate=SPECIFIC_DISSIPATION_RATE, chord=1, batch_template=None, nramp=5):
+def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3d, nalu_template, sim_dir, basename, nSpan=4, 
+                density=DENSITY, viscosity=VISCOSITY, turbulent_ke=TURBULENT_KE, specific_dissipation_rate=SPECIFIC_DISSIPATION_RATE, 
+                chord=1, batch_template=None, nramp=5):
 
     if isinstance(nalu_template, str):
-        yml_template = NALUInputFile(nalu_template)
+        yml_in = NALUInputFile(nalu_template)
     else:
-        yml_template = nalu_template
+        yml_in = nalu_template
 
     sim_dir = os.path.join(case_dir, airfoil_name)
     local_mesh_dir = os.path.join(sim_dir, 'meshes')
@@ -185,7 +178,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
 
 
     # --- Change yaml file
-    yml = yml_template.copy()
+    yml = yml_in.copy()
     # Shortcuts 
     ti = yml.data['Time_Integrators'][0]['StandardTimeIntegrator']
     realms = yml.data['realms']
@@ -232,7 +225,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
     #plt.show()
 
 
-    # Time
+    # --- Time
     ti['time_step'] = dt
     ti['termination_step_count'] = int(T/dt)
 
@@ -307,8 +300,7 @@ for ia, airfoil_name in enumerate(airfoil_names):
             raise NotImplementedError(airfoil_name)
 
     
-    #db_arf = db.select({'airfoil':airfoil_name})
-    #Reynolds = db_arf.configs['Re'].round(1).unique()
+
     #print('Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
     sim_dir = os.path.join(case_dir, airfoil_name)
     if not os.path.exists(sim_dir):
