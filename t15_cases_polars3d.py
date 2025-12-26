@@ -17,7 +17,7 @@ nT_steady=60
 nSpan = 121
 # nSpan = 24
 # nSpan = 4
-for nSpan in [121]:
+for nSpan in [4, 24, 121]:
     aseq = np.arange(-5, 20+3/2, 5)
     aseq = np.arange(-5, 25+3/2, 2.5)
     #aseq = np.arange(-20, 25+3/2, 5)
@@ -74,7 +74,7 @@ for nSpan in [121]:
     # airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
     airfoil_names = ['S809']
     #airfoil_names += ['du00-w-212', 'ffa-w3-211', 'nlf1-0416']
-    airfoil_names = ['du00-w-212', 'nlf1-0416']
+    #airfoil_names = ['du00-w-212', 'nlf1-0416']
     #airfoil_names = ['nlf1-0416']
 
     print(f'-------------------------------- SETUP ---------------------------------')

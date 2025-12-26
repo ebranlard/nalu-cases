@@ -7,7 +7,10 @@ from scipy.signal import chirp, butter, filtfilt
 import matplotlib.pyplot as plt
 import json
 
-from welib.tools.colors import python_colors
+try:
+    from welib.tools.colors import python_colors
+except:
+    pass
 
 
 

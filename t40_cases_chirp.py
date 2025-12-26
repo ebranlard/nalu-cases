@@ -32,7 +32,8 @@ N_CYCLES_DWELLS = 5    # TODO 5
 N_CONV          = 600  # TODO 250, 400
 N_CYCLES_CHIRP  = 4    # TODO 2
 DT_FACT         = 0.05 # TODO 0.02
-PREFIX='_HR'
+PREFIX=''
+SUFIX='_HR'
 
 
 
@@ -153,7 +154,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
 
 
     basename_ReMean = basename+'_'+'re{:04.1f}_mean{:02d}'.format(re, int(alpha_mean))
-    basename = PREFIX+basename_ReMean+'_'+'A{:02d}'.format(int(amplitude))
+    basename = PREFIX+basename_ReMean+'_'+'A{:02d}'.format(int(amplitude))+SUFIX
     yaml_file = os.path.join(sim_dir, basename+'.yaml')
 
     # --- Creating meshes
@@ -216,7 +217,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
     t, theta_rad, info = generate_step_chirp(dt, U, B1, alpha_mean_deg=alpha_mean, alpha_amp_deg=amplitude, 
                             n_chord_transient=nT_steady, n_chord_step=nT_steady, f0_factor=F0_FACTOR, k_target=K_TARGET, 
                             k_dwells=[0.1, 0.3, 0.5, 1.0],
-                            n_cycles_dwells=N_CYCLES_DWELLS, n_conv=N_CONV, n_cycles_chirp=N_CYCLES_CHIRP
+                            n_cycles_dwells=N_CYCLES_DWELLS, n_conv=N_CONV, n_cycles_chirp=N_CYCLES_CHIRP,
                             chord=chord, verbose=True, plot=False)
     x=theta_rad*0
     y=theta_rad*0
