@@ -5,8 +5,6 @@ import json
 import yaml
 
 #import matplotlib.pyplot as plt
-from scipy import signal
-from scipy.signal import chirp, butter, filtfilt
 from scipy.optimize import curve_fit
 
 
@@ -16,62 +14,31 @@ from nalulib.nalu_input import NALUInputFile
 from nalulib.nalu_batch import nalu_batch
 from nalulib.exodus_rotate import exo_rotate
 from nalulib.exodus_quads2hex import exo_zextrude
+from helper_functions import generate_step_chirp
 
 
 
 # --- Main inputs
-nSpan = 2
-nT_steady       = 10  # TODO 10 then 50
-K_TARGET        = 0.5 # TODO 0.6 or 1
-F0_FACTOR       = 1   # TODO 2 or 5
-N_CYCLES_DWELLS = 1   # TODO 5
-NCONV           = 20  # TODO 10 then 250
-NCYCLES_CHIRP   = 2   # TODO 2
-DT_FACT         = 0.05 # TODO 0.02
-PREFIX='SHORT_'
-# 
-# nSpan = 2
-# nT_steady       = 50  # TODO 10 then 50
-# K_TARGET        = 0.6 # TODO 0.6 or 1
-# F0_FACTOR       = 2   # TODO 2 or 5
-# N_CYCLES_DWELLS = 5   # TODO 5
-# NCONV           = 250  # TODO 10 then 250
-# NCYCLES_CHIRP   = 2   # TODO 2
-# DT_FACT         = 0.05 # TODO 0.02
-# PREFIX=''
-
-
-nSpan = 4
-nT_steady       = 50  # TODO 10 then 50
-K_TARGET        = 0.6 # TODO 0.6 or 1
-F0_FACTOR       = 2   # TODO 2 or 5
-N_CYCLES_DWELLS = 5   # TODO 5
-NCONV           = 250  # TODO 10 then 250
-NCYCLES_CHIRP   = 2   # TODO 2
-DT_FACT         = 0.05 # TODO 0.02
-PREFIX=''
-
 nSpan = 24
 nT_steady       = 50  # TODO 10 then 50
 K_TARGET        = 0.6 # TODO 0.6 or 1
 F0_FACTOR       = 2   # TODO 2 or 5
 N_CYCLES_DWELLS = 5   # TODO 5
-NCONV           = 250  # TODO 10 then 250
-NCYCLES_CHIRP   = 2   # TODO 2
+N_CONV          = 250  # TODO 10 then 250
+N_CYCLES_CHIRP  = 2   # TODO 2
 DT_FACT         = 0.05 # TODO 0.02
 PREFIX=''
 
-
-nSpan = 121
-nT_steady       = 50  # TODO 10 then 50
-K_TARGET        = 0.6 # TODO 0.6 or 1
-F0_FACTOR       = 2   # TODO 2 or 5
-N_CYCLES_DWELLS = 5   # TODO 5
-NCONV           = 250  # TODO 10 then 250
-NCYCLES_CHIRP   = 2   # TODO 2
+# Higher res
+nSpan = 24
+nT_steady       = 60   # TODO 10, 50 60
+K_TARGET        = 1.2  # TODO 0.6 or 1
+F0_FACTOR       = 4    # TODO 2 or 4, 5
+N_CYCLES_DWELLS = 5    # TODO 5
+N_CONV          = 600  # TODO 250, 400
+N_CYCLES_CHIRP  = 4    # TODO 2
 DT_FACT         = 0.05 # TODO 0.02
-PREFIX=''
-
+PREFIX='_HR'
 
 
 
@@ -115,8 +82,8 @@ elif 'ebranlar' in current_path: # Kestrel
     cluster = 'kestrel'
     #batch_template ='_templates/submit-kestrel.sh'
     batch_template ='_templates/submit-kestrel.sh'
-    hours={2:24, 4:48, 22:72, 24:102, 121:202}[nSpan]
-    nodes={2:1 , 4:1 , 22:2 , 24:1,   121:1}[nSpan]
+    hours={2:24, 4:48, 22:144, 24:144, 121:202}[nSpan]
+    nodes={2:1 , 4:1 , 22:1 , 24:1,   121:1}[nSpan]
 else:
     #cluster = 'local'
     #batch_template =None
@@ -170,181 +137,6 @@ yml = NALUInputFile(nalu_template)
 
 
 
-def determine_chirp_duration(f0, velocity, chord, ncycles=2, nconv=250, verbose=False):
-    """
-    Calculates chirp duration based on the lowest frequency and convective scales.
-    """
-    # --- Frequency Constraint: 
-    # Ensure we have enough oscillations at the slowest speed to 'see' the physics.
-    t_min = ncycles / f0
-    # --- Convective Constraint: 
-    # Total distance traveled in chord lengths. 
-    # For System ID, 400-600 convective time units is a healthy target.
-    t_conv = (nconv * chord) / velocity
-    # Take the maximum of the two to be safe
-    duration = max(t_min, t_conv)
-    if verbose:
-        print(f"Chirp duration based on cycles at f0    : {t_min:.2f} s")
-        print(f"Chirp duration based on convective units: {t_conv:.2f} s")
-    return duration
-
-def generate_step_chirp(dt, U, B1, alpha_mean_deg=2.0, alpha_amp_deg=1.0, 
-                        n_chord_transient=50, n_chord_step=60, f0_factor=5.0, k_target=1.0, 
-                        k_dwells=[0.1, 0.3, 0.5],
-                        n_cycles_dwells=4,
-                        nconv=250,
-                        chord=1, verbose=True, plot=True):
-    # --- Physical Parameters ---
-    fs = 1.0 / dt 
-    t_conv = chord / U  # Convective time (1 chord)
-    s_factor = (2 * U) / chord   
-    
-    # --- Frequency Calculations ---
-    f_break_low = (B1 * U) / (np.pi * chord)
-    f0 = f_break_low / f0_factor
-    f1 = (k_target * U) / (np.pi * chord)
-    f_ref = U / (np.pi * chord)
-
-    
-    # Nyquist Check
-    if f1 >= 0.5 * fs:
-        print(f"[WARN] f1 ({f1:.2f} Hz) is too high for dt. Capping at Nyquist.")
-        f1 = 0.4 * fs # Safety margin
-    
-    # --- Phase 1: Transient (Alpha = Mean) ---
-    T_transient = n_chord_transient * t_conv
-    t_transient = np.arange(0, T_transient, dt)
-    alpha_transient = np.ones_like(t_transient) * np.radians(alpha_mean_deg)
-    
-    # --- Phase 2: Step Phase (Alpha Mean + Amplitude) ---
-    T_step = n_chord_step * t_conv
-    t_step = np.arange(0, T_step, dt)
-    a_start = np.radians(alpha_mean_deg)
-    a_end = np.radians(alpha_mean_deg + alpha_amp_deg)
-    alpha_step = np.ones_like(t_step) * a_end
-    n_ramp = 2 
-    if len(alpha_step) > n_ramp:
-        ramp_values = np.linspace(a_start, a_end, n_ramp + 1)
-        alpha_step[:n_ramp] = ramp_values[1:]
-    # --- Compute Step Pitch Rate (alpha_dot) ---
-    # Centered difference for the bulk, one-sided for the edges
-    alpha_dot = np.gradient(alpha_step, dt)
-    # The max pitch rate happens during our ramp:
-    alpha_dot_max = (a_end - a_start) / (n_ramp * dt)
-
-    # Smooth the first two steps:
-    # Step 0: Midway point
-    # Step 1: Reach the end point (already set by ones_like)
-    # This creates a ramp: [Mean] -> [Mean + 0.5*Amp] -> [Mean + Amp]
-    if len(alpha_step) > 2:
-        alpha_step[0] = a_start + (a_end - a_start) * 0.5
-    
-    # --- Chirp using log scale
-    # Duration: Enough to resolve f0 (at least n cycles)
-    T_chirp = determine_chirp_duration(f0, U, chord, ncycles=NCYCLES_CHIRP, nconv=nconv, verbose=True)
-    t_chirp = np.arange(0, T_chirp, dt)
-    alpha_chirp_raw = np.radians(alpha_mean_deg) + np.radians(alpha_amp_deg) * signal.chirp( t_chirp, f0=f0, f1=f1, t1=t_chirp[-1], method='logarithmic')
-    # Find the last peak index
-    # We look for where the signal is at its maximum (within a tiny tolerance)
-    peaks, _ = signal.find_peaks(alpha_chirp_raw)
-    if len(peaks) > 0:
-        last_peak_idx = peaks[-1]
-        # Trim arrays to the last peak
-        t_chirp = t_chirp[:last_peak_idx + 1]
-        alpha_chirp = alpha_chirp_raw[:last_peak_idx + 1]
-    else:
-        alpha_chirp = alpha_chirp_raw # Fallback if no peak found
-
-    # --- Phase 4: Dwells ---
-    dwell_alphas = []
-    dwell_info = []
-    current_t = t_chirp[-1] + dt
-    k_dwells = sorted(k_dwells, reverse=True)
-    for k in k_dwells:
-        f_target = (k * U) / (np.pi * chord)
-        t_seg = np.arange(0, n_cycles_dwells / f_target, dt)
-        # Cosine starts at mean + amplitude
-        alpha_seg = np.radians(alpha_mean_deg) + np.radians(alpha_amp_deg) * np.cos(2 * np.pi * f_target * t_seg)
-        
-        current_combined_len = len(alpha_transient) + len(alpha_step) + len(alpha_chirp) + \
-                               sum(len(a) for a in dwell_alphas)
-                               
-        dwell_info.append({
-            'k': k, 
-            'f_hz': f_target,
-            'start_idx': current_combined_len, 
-            'end_idx': current_combined_len + len(alpha_seg),
-            'duration_s': t_seg[-1],
-            'duration_dim': t_seg[-1] * s_factor
-        })
-        dwell_alphas.append(alpha_seg)
-    
-    # --- Concatenation ---
-    alpha_total = np.concatenate([alpha_transient, alpha_step, alpha_chirp] + dwell_alphas)
-    t_total = np.arange(len(alpha_total)) * dt
-
-    # Store comprehensive info for post-processing
-    info={
-        'dt': dt, 'U': U, 'chord': chord, 's_factor': s_factor,
-        'f0': f0, 'f1': f1,
-        'indices_phases': [len(alpha_transient), len(alpha_step), len(alpha_chirp)],
-        'dwells': dwell_info,
-        't_total': t_total[-1]
-    	 }
-
-    if verbose:
-        header = f"{'Phase':<15} | {'tStart (s)':<10} | {'iStart (-)':<10} | {'sStart (-)':<10} | {'Dur (s)':<8} | {'Dur (-)':<8}"
-        print("\n" + header)
-        print("-" * len(header))
-        # Helper to print rows
-        def print_row(name, t_start, i_start, dur_t):
-            print(f"{name:<15} | {t_start:<10.3f} | {i_start:<10} | {t_start*s_factor:<10.1f} | {dur_t:<8.2f} | {int(dur_t/dt):<10}")
-        # Static Phases
-        print_row("Transients", 0.0, 0, t_transient[-1])
-        print_row("Step/Hold", t_total[len(alpha_transient)], len(alpha_transient), t_step[-1])
-        i_chirp = len(alpha_transient) + len(alpha_step)
-        print_row("Chirp", t_total[i_chirp], i_chirp, t_chirp[-1])
-        # Dwell Phases
-        for d in dwell_info:
-            print_row(f"Dwell k={d['k']:.2f}", t_total[d['start_idx']], d['start_idx'], d['duration_s'])
-        
-        print("-" * len(header))
-        print_row(f"Final", t_total[-1], len(t_total), t_total[-1])
-        print("-" * len(header))
-
-        print(f"Sampling: {fs:.1f} Hz | dt: {dt:.8f} s | U: {U:.2f} m/s")
-        print(f"Chirp Range: f0={f0:.3f} Hz to f1={f1:.2f} Hz ({f0/f_ref:.2f} to {f1/f_ref:.2f}, k={k_target})")
-
-    if plot:
-        fig, ax1 = plt.subplots(figsize=(12, 5))
-        ax1.plot(t_total, np.degrees(alpha_total), 'b', lw=1.2)
-        ax1.set_xlabel('Physical Time [s]')
-        ax1.set_ylabel('Alpha [deg]', color='b')
-        ax1.grid(True, alpha=0.3)
-        ax2 = ax1.twiny()
-        ax2.set_xlim(ax1.get_xlim()[0] * s_factor, ax1.get_xlim()[1] * s_factor)
-        ax2.set_xlabel('Dimensionless Time [s]')
-        # Phase boundaries
-        main_indices = [
-            len(alpha_transient), 
-            len(alpha_transient) + len(alpha_step), 
-            len(alpha_transient) + len(alpha_step) + len(alpha_chirp)
-        ]
-        for idx in main_indices:
-            ax1.axvline(t_total[idx-1], color='r', ls='--', lw=1.5, alpha=0.7)
-        # Dwell Boundaries (Iterate through dwell_info)
-        for i,d in enumerate(dwell_info):
-            # We only need the end boundary for each dwell since the start 
-            # is the end of the previous one
-            ax1.axvline(t_total[d['end_idx']-1], color='r', ls='--', lw=1.0)
-            # Label the k-value on the plot
-            t_mid = t_total[d['start_idx']] + (d['duration_s'] / 2)
-            ax1.text(t_mid, alpha_mean_deg-i/5, f"k={d['k']}", ha='center', va='bottom', fontsize=9, bbox=dict(facecolor='white', alpha=0.6))
-
-
-        plt.title(f"CFD Input: U={U:.1f}m/s, k_target={k_target}")
-
-    return t_total, alpha_total, info
 
 
 def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3d, nalu_template, sim_dir, basename, nSpan=4, density=1.2, viscosity=9.0e-6, turbulent_ke=TURBULENT_KE, specific_dissipation_rate=SPECIFIC_DISSIPATION_RATE, chord=1, batch_template=None, nramp=5):
@@ -388,6 +180,8 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
             os.remove(rotated_mesh_2d)
         except:
             print('[WARN] Cant delete: ', rotated_mesh_2d)
+    else:
+        print('[INFO] Mesh exists')
 
 
     # --- Change yaml file
@@ -426,14 +220,14 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
 
     # --- Motion
     #t_steady = T
-    t, theta, info = generate_step_chirp(dt, U, B1, alpha_mean_deg=alpha_mean, alpha_amp_deg=amplitude, 
+    t, theta_rad, info = generate_step_chirp(dt, U, B1, alpha_mean_deg=alpha_mean, alpha_amp_deg=amplitude, 
                             n_chord_transient=nT_steady, n_chord_step=nT_steady, f0_factor=F0_FACTOR, k_target=K_TARGET, 
-                            k_dwells=[0.1, 0.3, 0.5],
-                            n_cycles_dwells=N_CYCLES_DWELLS, nconv=NCONV,
+                            k_dwells=[0.1, 0.3, 0.5, 1.0],
+                            n_cycles_dwells=N_CYCLES_DWELLS, n_conv=N_CONV, n_cycles_chirp=N_CYCLES_CHIRP
                             chord=chord, verbose=True, plot=False)
-    x=theta*0
-    y=theta*0
-    yml.set_motion(t, x, y, np.degrees(theta), plot=False, irealm=1)
+    x=theta_rad*0
+    y=theta_rad*0
+    yml.set_motion(t, x, y, np.degrees(theta_rad), plot=False, irealm=1)
     T = np.max(t)
     #plt.show()
 

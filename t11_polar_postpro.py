@@ -10,7 +10,6 @@ from nalulib.nalu_forces_combine import nalu_forces_combine
 from nalulib.weio.csv_file import CSVFile
 
 def airfoil2config(airfoil_name, db, db_stat=None, db_stat2=None):
-
     config={}
     config['chord']                    = 1
     config['density']                  = 1.2
@@ -76,10 +75,14 @@ airfoil_names =  list(airfoil_names)
 airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211'] + ['S809'] #  +  list(airfoil_names)
 # airfoil_names = ['du00-w-212']
 airfoil_names = ['S809']
+airfoil_names +=['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
 # airfoil_names = ['S809','NACA4415']
 # airfoil_names = ['NACA4415']
 # airfoil_names = ['S813']
 # airfoil_names = ['LS-0421MOD']
+# airfoil_names =['ffa-w3-211']
+# airfoil_names =['du00-w-212']
+# airfoil_names =['nlf1-0416']
 
 
 
@@ -92,11 +95,16 @@ case_dir_n = {
         121:'_results/cases_polar3d_n121/',
  }
 
-# --- Loop through airfoils and create meshes
+# --- Loop through airfoils
 for airfoil_name in airfoil_names:
     print(f'---------------------------- {airfoil_name} ------------------------')
     config, db_stat_arf = airfoil2config(airfoil_name, db, db_stat, db_stat2)
     print('Reynolds:', config['Reynolds'].tolist())
+
+    # HACK
+    if len(config['Reynolds'])>2:
+        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HACK ONE RE FOR NOW')
+        config['Reynolds'] = [0.8]
 
     for re in config['Reynolds']:
     #for re in [0.8]:
@@ -135,14 +143,14 @@ for airfoil_name in airfoil_names:
                     pattern = os.path.join(sim_dir,'forces_*.csv')
                     csv_files = nalu_forces_combine(pattern=pattern, dry_run=False, verbose=False)
                     pattern = os.path.join(sim_dir,'_forces_aoa*.csv')
-                    dfp, dfss, _ = polar_postpro(pattern, yaml_file3d, polar_out = polar_out3d, use_ss=True, plot=False, verbose=False, dz=4, cfd_sty='o-')
+                    dfp, dfss, _ = polar_postpro(pattern, yaml_file3d, polar_out = polar_out3d, use_ss=True, plot=False, verbose=False, span=4, cfd_ls='-', cfd_m='o')
                 except FileNotFoundError as e:
                     #print('FileNotFound', e)
                     continue
             else:
                 try:
                     pattern = os.path.join(sim_dir,'_forces_aoa*.csv')
-                    dfp, dfss, _ = polar_postpro(pattern, yaml_file3d, polar_out = polar_out3d, use_ss=True, plot=False, verbose=False, dz=4, cfd_sty='o-')
+                    dfp, dfss, _ = polar_postpro(pattern, yaml_file3d, polar_out = polar_out3d, use_ss=True, plot=False, verbose=False, span=4, cfd_ls='-', cfd_m='o')
                 except FileNotFoundError as e:
                     print('FileNotFound', e)
                     continue
