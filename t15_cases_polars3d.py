@@ -17,6 +17,8 @@ airfoil_names = db.configs['airfoil'].unique()
 # --- Main inputs
 submit=False
 nT_steady=60
+SS_WING_PP=False
+zSpan = 4.0
 
 airfoil_names = []
 airfoil_names += ['S809'] 
@@ -32,8 +34,11 @@ for nSpan in [4, 24, 121]:
 
 
     mesh_dir    ='meshes'
-    case_dir    ='cases_polar3d_n{}'.format(nSpan)
-    nalu_template ='_templates/airfoil_name/input_pp.yaml'
+    case_dir    ='cases_polar3d_n{}_z{}'.format(nSpan,int(zSpan))
+    if SS_WING_PP:
+        nalu_template ='_templates/airfoil_name/input_pp.yaml'
+    else:
+        nalu_template ='_templates/airfoil_name/input_no_wing_pp.yaml'
     current_path = os.getcwd()
     mem=None
     nodes=1
@@ -72,7 +77,7 @@ for nSpan in [4, 24, 121]:
 
     if not os.path.exists(background_3d):
         background_3d_n1 = './meshes/background_n1.exo'
-        exo_zextrude(background_3d_n1, background_3d, nSpan=nSpan, zSpan=4.0, zoffset=0.0, verbose=True, airfoil2wing=False, ss_wing_pp=SS_WING_PP, profiler=False, ss_suffix='_bg')
+        exo_zextrude(background_3d_n1, background_3d, nSpan=nSpan, zSpan=zSpan, zoffset=0.0, verbose=True, airfoil2wing=False, ss_wing_pp=SS_WING_PP, profiler=False, ss_suffix='_bg')
 
 
     yml_template = NALUInputFile(nalu_template)
@@ -112,7 +117,7 @@ for nSpan in [4, 24, 121]:
             # --- Creating meshes
             extruded_mesh = os.path.join(local_mesh_dir, 'input_mesh'+'_n{}.exo'.format(nSpan))
             if not os.path.exists(extruded_mesh):
-                exo_zextrude(mesh_file_2d, extruded_mesh, nSpan=nSpan, zSpan=4.0, zoffset=0.0, verbose=False, airfoil2wing=True, ss_wing_pp=True, profiler=False, ss_suffix=None)
+                exo_zextrude(mesh_file_2d, extruded_mesh, nSpan=nSpan, zSpan=zSpan, zoffset=0.0, verbose=False, airfoil2wing=True, ss_wing_pp=True, profiler=False, ss_suffix=None)
 
             # --- Create a input file with proper mesh and flow parameters
             default_yaml_file = os.path.join(sim_dir, 'input.yaml')

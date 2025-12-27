@@ -1,0 +1,12 @@
+
+Create AD polars files with proper Clalpha
+
+# TODO TODO Use UA Driver and my own DynamicStall module to reproduce chirp signal
+
+# Loops with Cl on top
+
+# Improve determination of A1 A2 B1 B2 for steps
+
+# Fix TF from step, unittest it
+
+
