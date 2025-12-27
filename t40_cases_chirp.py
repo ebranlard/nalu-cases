@@ -9,6 +9,7 @@ from nalulib.nalu_batch import nalu_batch
 from nalulib.exodus_rotate import exo_rotate
 from nalulib.exodus_quads2hex import exo_zextrude
 from helper_functions import generate_step_chirp
+import json
 
 
 
@@ -25,7 +26,7 @@ PREFIX=''
 
 # Higher res
 nSpan = 24
-nT_steady       = 60   # TODO 10, 50 60
+nT_steady       = 55   # TODO 10, 50 60
 K_TARGET        = 1.2  # TODO 0.6 or 1
 F0_FACTOR       = 4    # TODO 2 or 4, 5
 N_CYCLES_DWELLS = 5    # TODO 5
@@ -218,7 +219,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
                             n_chord_transient=nT_steady, n_chord_step=nT_steady, f0_factor=F0_FACTOR, k_target=K_TARGET, 
                             k_dwells=[0.1, 0.3, 0.5, 1.0],
                             n_cycles_dwells=N_CYCLES_DWELLS, n_conv=N_CONV, n_cycles_chirp=N_CYCLES_CHIRP,
-                            chord=chord, verbose=True, plot=False)
+                            chord=chord, flip=True, verbose=True, plot=False)
     x=theta_rad*0
     y=theta_rad*0
     yml.set_motion(t, x, y, np.degrees(theta_rad), plot=False, irealm=1)
