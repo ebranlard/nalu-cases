@@ -12,7 +12,7 @@ import json
 
 # --- Main inputs
 nSpan = 4
-nSpan = 24
+#nSpan = 24
 nT_steady=60
 nT_oscill=15
 
@@ -127,13 +127,14 @@ def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, bac
     T_steady = chord/U*nT_steady
 
 
-    basename_ReMean = basename+'_'+'re{:04.1f}_mean{:04.1f}'.format(re_round, mean_round)
+    basename_ReMeanRound = basename+'_'+'re{:04.1f}_mean{:04.1f}'.format(re_round, mean_round) # For Mesh
+    basename_ReMean      = basename+'_'+'re{:05.2f}_mean{:04.1f}'.format(re, mean_round)
     basename = basename_ReMean+'_'+'A{:04.1f}_f{:03.1f}'.format(amplitude, frequency)
     yaml_file = os.path.join(sim_dir, basename+'.yaml')
 
     # --- Creating meshes
-    rotated_mesh_2d  = os.path.join(local_mesh_dir, basename_ReMean+'_n1.exo')
-    extruded_mesh_2d = os.path.join(local_mesh_dir, basename_ReMean+'_n{}.exo'.format(nSpan))
+    rotated_mesh_2d  = os.path.join(local_mesh_dir, basename_ReMeanRound+'_n1.exo')
+    extruded_mesh_2d = os.path.join(local_mesh_dir, basename_ReMeanRound+'_n{}.exo'.format(nSpan))
     if not os.path.exists(extruded_mesh_2d):
         if not os.path.exists(rotated_mesh_2d):
             print('Rotating mesh: ', rotated_mesh_2d, alpha_mean)
@@ -223,7 +224,10 @@ def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, bac
 for ia, airfoil_name in enumerate(airfoil_names):
     print(f'---------------------------- {airfoil_name} ------------------------')
     db_arf = db.select({'airfoil':airfoil_name})
+    n1=len(db_arf)
     db_arf = db_arf.query("Mean<{}".format(alpha_cut))
+    n2=len(db_arf)
+    print(f'AFTER SELECTING FOR ALPHA MEAN: n={n1}/{n2}')
 
     Reynolds = db_arf.configs['Re'].round(2).unique()
     Reynolds = np.sort(Reynolds)

@@ -105,7 +105,7 @@ def generate_step_chirp(dt, U, B1, alpha_mean_deg=2.0, alpha_amp_deg=1.0,
                         n_cycles_dwells=4,
                         n_conv=250,
                         n_cycles_chirp=2,
-                        chord=1, verbose=True, plot=True, flip=False, **kwargs):
+                        chord=1, verbose=True, plot=True, flip=True, **kwargs):
     if verbose:
         for k,v in kwargs.items():
             print('Key unused: ', k)
@@ -245,8 +245,9 @@ def generate_step_chirp(dt, U, B1, alpha_mean_deg=2.0, alpha_amp_deg=1.0,
         print_row(f"Final", t_total[-1], len(t_total), t_total[-1])
         print("-" * len(header))
 
-        print(f"Sampling: {fs:.1f} Hz | dt: {dt:.8f} s | U: {U:.2f} m/s")
+        print(f"Sampling   : {fs:.1f} Hz | dt: {dt:.8f} s | U: {U:.2f} m/s")
         print(f"Chirp Range: f0={f0:.3f} Hz to f1={f1:.2f} Hz ({f0/f_ref:.2f} to {f1/f_ref:.2f}, k={k_target})")
+        print(f'Flip       :', flip)
 
     if plot:
         fig, ax1 = plt.subplots(figsize=(12, 5))
