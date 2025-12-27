@@ -12,10 +12,10 @@ try:
 except:
     pass
 
-
-
-def airfoil2configStat(airfoil_name, db_stat=None, db_stat2=None):
+def airfoil2configStat(airfoil_name, db, verbose=False):
+    # Current baseline...
     config={}
+    config['airfoil']                  = airfoil_name
     config['chord']                    = 1
     config['density']                  = 1.2
     config['viscosity']                = 9.0e-06
@@ -23,39 +23,34 @@ def airfoil2configStat(airfoil_name, db_stat=None, db_stat2=None):
     config['turbulent_ke']             = 0.0013020495206400003
     config['dt_fact']                  = 0.02
 
-    if airfoil_name in ['du00-w-212', 'nlf1-0416' , 'ffa-w3-211']:
-        db_stat_arf = db_stat2.select({'airfoil':airfoil_name})
-        config['Reynolds'] = np.array(sorted(db_stat_arf.configs['Re'].round(2).unique()))
-        config_ = db_stat_arf.common_config
-        for k,v in config_.items():
-            if isinstance(v, (int, float)):
-                if not np.isnan(v):
-                    print(f'Setting {k:20s}={v}')
-                    config[k] = v
-            else:
-                config[k] = v
-    else:
-        if len(db_arf) ==0:
-            raise Exception('Something is wrong')
-        db_stat_arf = db_stat.select({'airfoil':airfoil_name})
-        config['Reynolds'] = np.array(sorted(list(set(db_stat_arf.configs['Re']))))
-        #if airfoil_name=='S809':
-        #    Re1 = np.array(sorted(db_arf.configs['Re'].round(1).unique()))
-        #    config['Reynolds'] =Re1
-        #else:
-        #    Re1 = np.array(sorted(db_arf.configs['Re'].round(2).unique()))
-        #    RE_expected = np.array([0.8, 1.0, 1.2, 1.4, 1.5]) # 0.75, 1.0, 1.25, 1.3, 1.4, 1.5]
-        #    RE = []
-        #    for re in Re1:
-        #        i=np.argmin(np.abs(re- RE_expected))
-        #        re_ = RE_expected[i]
-        #        RE.append(re_)
-        #    RE=np.array(sorted(list(set(RE))))
-        #    config['Reynolds'] =RE
+    # --- KEEP ME
+    # irfoil_name = 'du00-w-212'
+    #config={'airfoil':airfoil_name, 'Re':3, 'density':1.225, 'viscosity':1.392416666666667e-05}
+    #airfoil_name = 'nlf1-0416'
+    #config={'airfoil':airfoil_name, 'Re':4, 'density':1.225, 'viscosity':1.0443125000000002e-05}
+    #config['specific_dissipation_rate'] = 460.34999999999997
+    #config['turbulent_ke']              = 0.00392448375
 
-        config['db_Stat'] = db_stat_arf
+    db_arf = db.select({'airfoil':airfoil_name})
+    config_db = db_arf.common_config
+    if verbose:
+        print('Config_db', config_db)
+    config['Reynolds'] = db_arf['Re'].round(2).sort_values().unique()
+    for k,v in config_db.items():
+        if isinstance(v, (int, float)):
+            if not np.isnan(v) and k not in ['Re']:
+                print(f'Setting {k:25s}={v}')
+                if isinstance(v, int):
+                    config[k] = int(v)
+                else:
+                    config[k] = float(v)
 
-    return config, db_stat_arf
+        else:
+            config[k] = v
+
+
+    return config, db_arf
+
 
 
 

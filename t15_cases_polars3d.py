@@ -7,27 +7,33 @@ from nalulib.nalu_aseq import nalu_aseq
 from nalulib.nalu_batch import nalu_batch
 from nalulib.exodus_rotate import exo_rotate
 from nalulib.exodus_quads2hex import exo_zextrude
+from helper_functions import airfoil2configStat
 
+db = DataFrameDatabase('experiments/DB_all_stat.pkl')
+db = db.query('airfoil!="L303"') # No geometry for L303
+airfoil_names = db.configs['airfoil'].unique()
 
 
 # --- Main inputs
 submit=False
 nT_steady=60
 
-nSpan = 121
-# nSpan = 24
-# nSpan = 4
+airfoil_names = []
+airfoil_names += ['S809'] 
+# airfoil_names += airfoil_names_db
+# airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
+
 for nSpan in [4, 24, 121]:
-    aseq = np.arange(-5, 20+3/2, 5)
     aseq = np.arange(-5, 25+3/2, 2.5)
+    #aseq = np.arange(-5, 20+3/2, 5)
     #aseq = np.arange(-20, 25+3/2, 5)
-    # aseq = np.arange(-2, 3+3/2, 1)
+    #aseq = np.arange(-2, 3+3/2, 1)
     one_job = False
 
 
     mesh_dir    ='meshes'
     case_dir    ='cases_polar3d_n{}'.format(nSpan)
-    nalu_template ='_templates/airfoil_name/input_no_restart_with_output.yaml'
+    nalu_template ='_templates/airfoil_name/input_pp.yaml'
     current_path = os.getcwd()
     mem=None
     nodes=1
@@ -50,121 +56,45 @@ for nSpan in [4, 24, 121]:
         batch_template ='_templates/submit-bash.sh'
         hours=2
 
-
-
-    chord=1
-    DENSITY= 1.2
-    VISCOSITY = 9.0E-06
-    SPECIFIC_DISSIPATION_RATE= 114.54981120000002
-    TURBULENT_KE= 0.0013020495206400003
-    DT_FACT=0.02
-
-
     # TODO TI
     N = 150
     yplus=0.1
 
-    # 
-    db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
-    db = db.select({'Roughness':'Clean'})
-    db = db.query('airfoil!="L303"') # No geometry for L303
-    airfoil_names = db.configs['airfoil'].unique()
-
-    # airfoil_names =  list(airfoil_names) + ['du00-w2-212', 'nlf1-0416'] 
-    # airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
-    airfoil_names = ['S809']
-    #airfoil_names += ['du00-w-212', 'ffa-w3-211', 'nlf1-0416']
-    #airfoil_names = ['du00-w-212', 'nlf1-0416']
-    #airfoil_names = ['nlf1-0416']
-
-    print(f'-------------------------------- SETUP ---------------------------------')
+    # --- SETUP
+    print(f'{f"SETUP":-^70}')
     print(f'cluster      : {cluster}')
     print(f'hours        : {hours}')
     print(f'ntasks       : {ntasks}')
     print(f'airfoil_names: {airfoil_names}')
 
 
-
     background_3d = './meshes/background_n{}.exo'.format(nSpan)
 
     if not os.path.exists(background_3d):
         background_3d_n1 = './meshes/background_n1.exo'
-        exo_zextrude(background_3d_n1, background_3d, nSpan=nSpan, zSpan=4.0, zoffset=0.0, verbose=True, airfoil2wing=False, ss_wing_pp=False, profiler=False, ss_suffix='_bg')
-
-
-
-
+        exo_zextrude(background_3d_n1, background_3d, nSpan=nSpan, zSpan=4.0, zoffset=0.0, verbose=True, airfoil2wing=False, ss_wing_pp=SS_WING_PP, profiler=False, ss_suffix='_bg')
 
 
     yml_template = NALUInputFile(nalu_template)
 
     # --- Loop through airfoils and create meshes
     for ia, airfoil_name in enumerate(airfoil_names):
-        print(f'---------------------------- {airfoil_name} ------------------------')
-        db_arf = db.select({'airfoil':airfoil_name})
-
-        Reynolds = db_arf.configs['Re'].round(2).unique()
-        RE_expected = np.array([0.8, 1.0, 1.2, 1.4, 1.5, 3.0]) # 0.75, 1.0, 1.25, 1.3, 1.4, 1.5]
-        RE = []
-        for re in Reynolds:
-            i=np.argmin(np.abs(re- RE_expected))
-            re_ = RE_expected[i]
-            RE.append(re_)
-        Reynolds=np.array(sorted(list(set(RE))))
-
-
-        density=DENSITY
-        viscosity=VISCOSITY
-        dt_fact=DT_FACT
-        specific_dissipation_rate= SPECIFIC_DISSIPATION_RATE
-        turbulent_ke=TURBULENT_KE
-
-
-        # --- HACK ['du00-w-212', 'nlf1-0416', 'ffa'], not in database:
-        hack=False
-        if len(db_arf)==0:
-            hack=True
-            if airfoil_name == 'du00-w-212':
-                Reynolds=[3]; re=Reynolds[0]
-                #mesh_file_2d = './du00-w-212/grids/du00w212_re3M_y03_aoa0_n1.exo'
-                mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
-                density=1.225
-                viscosity=1.392416666666667e-05
-                #dt_fact=0.55
-            elif airfoil_name == 'nlf1-0416':
-                Reynolds=[4]; re=Reynolds[0]
-                #mesh_file_2d = './nl1-0416/grids/nlf1-0416_re4M_y2_aoa0_n1.exo'
-                mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
-                density=1.225
-                viscosity=1.0443125000000002e-05
-                specific_dissipation_rate= 460.34999999999997
-                turbulent_ke=0.00392448375
-                #dt_fact=0.55
-
-
-            elif airfoil_name == 'ffa-w3-211':
-                Reynolds=[10]; re=Reynolds[0]
-                #mesh_file_2d = './ffa/grids/ffa_w3_211_near_body_aoa0_n1.exo'
-                mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
-            else:
-                raise NotImplementedError(airfoil_name)
-
+        print('\n----------------------------------------------------------------------')
+        print(f'{airfoil_name:-^70}')
+        print('----------------------------------------------------------------------')
+        config, db_arf = airfoil2configStat(airfoil_name, db)
+        Reynolds = config['Reynolds']
         print('Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
 
-
         for iRe, re in enumerate(Reynolds):
+            print(f'{f"Re={re:.2f}":-^70}')
 
-            # TODO TODO TODO TO REMEMBER NEAR BODY!
-            if hack:
-                pass
-            else:
-                mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
-
+            # --- Main paths and job names           
+            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
             if not os.path.exists(mesh_file_2d):
-                print('[WARN] Mesh not found: ', mesh_file_2d)
-                continue
+                raise Exception('[WARN] Mesh not found: ', mesh_file_2d)
 
-            jobname = airfoil_name + '_re{:04.1f}M'.format(re)
+            jobname = airfoil_name + '_re{:05.2f}M'.format(re)
             sim_dir = os.path.join(case_dir, jobname)
             print('sim_dir:   ', sim_dir)
             if not os.path.exists(sim_dir):
@@ -175,17 +105,14 @@ for nSpan in [4, 24, 121]:
 
 
             # --- Scales
-            U = float(re*1e6 *viscosity /(density * chord ))
-            dt = float(np.around(dt_fact * chord / U, 8))
-            T = chord/U*nT_steady
-
+            U = float(re*1e6 *config['viscosity'] /(config['density'] * config['chord'] ))
+            dt = float(np.around(config['dt_fact'] * config['chord'] / U, 8))
+            T = config['chord']/U*nT_steady
 
             # --- Creating meshes
             extruded_mesh = os.path.join(local_mesh_dir, 'input_mesh'+'_n{}.exo'.format(nSpan))
             if not os.path.exists(extruded_mesh):
                 exo_zextrude(mesh_file_2d, extruded_mesh, nSpan=nSpan, zSpan=4.0, zoffset=0.0, verbose=False, airfoil2wing=True, ss_wing_pp=True, profiler=False, ss_suffix=None)
-
-            #mesh_file_2d_rel = os.path.relpath(mesh_file_2d, sim_dir)
 
             # --- Create a input file with proper mesh and flow parameters
             default_yaml_file = os.path.join(sim_dir, 'input.yaml')
@@ -196,34 +123,36 @@ for nSpan in [4, 24, 121]:
             realms = yml.data['realms']
             bg = realms[0]
             af = realms[1]
+
+            # --- Mesh
             bg['mesh'] = os.path.relpath(background_3d, sim_dir).replace('\\', '/')
             af['mesh'] = os.path.relpath(extruded_mesh, sim_dir).replace('\\', '/')
-            if 'restart' in bg:
-                bg['restart']['restart_data_base_name'] = 'restart/'+jobname+'_bg'
-                af['restart']['restart_data_base_name'] = 'restart/'+jobname+'_arf'
 
-            # Flow variables
+            # --- Flow variables
             yml.velocity = [U, 0, 0]
-            yml.density = density
-            yml.viscosity = viscosity
+            yml.density = config['density']
+            yml.viscosity = config['viscosity']
 
-            yml.inflow_turbulent_ke               = turbulent_ke
-            yml.outflow_turbulent_ke              = turbulent_ke
-            yml.IC_turbulent_ke                   = turbulent_ke
-            yml.inflow_specific_dissipation_rate  = specific_dissipation_rate
-            yml.outflow_specific_dissipation_rate = specific_dissipation_rate
-            yml.IC_specific_dissipation_rate      = specific_dissipation_rate
+            yml.inflow_turbulent_ke               = config['turbulent_ke']
+            yml.outflow_turbulent_ke              = config['turbulent_ke']
+            yml.IC_turbulent_ke                   = config['turbulent_ke']
+            yml.inflow_specific_dissipation_rate  = config['specific_dissipation_rate']
+            yml.outflow_specific_dissipation_rate = config['specific_dissipation_rate']
+            yml.IC_specific_dissipation_rate      = config['specific_dissipation_rate']
 
-            # Time
+            # --- Time
             ti['time_step'] = dt
             ti['termination_step_count'] = int(T/dt)
 
 
-            # --- Output
-            if 'output' in bg:
-                #bg['output']['output_data_base_name'] # handled by polar_aseq
-                bg['output']['output_frequency'] = int(T/dt)-1
-                af['output']['output_frequency'] = int(T/dt)-1
+            # --- Output and restart
+            yml.remove_output()
+            yml.remove_restart()
+            #yml.set_output({'output_frequency': int(T/dt)-1})
+            #'output_data_base_name'] # handled by polar_aseq
+            #if 'restart' in bg:
+            #    bg['restart']['restart_data_base_name'] = 'restart/'+jobname+'_bg'
+            #    af['restart']['restart_data_base_name'] = 'restart/'+jobname+'_arf'
 
             yml.save(default_yaml_file)
             print('Main yaml: ', default_yaml_file)
@@ -237,13 +166,11 @@ for nSpan in [4, 24, 121]:
                       one_job=one_job,
                       raiseError=False, # <<<<<<<<<<<<
                       hours=hours, nodes=nodes, ntasks=ntasks, mem=mem, cluster=cluster)
-                      #sim_dir = sim_dir,
-    # 
-    #         for ia, alpha_mean in enumerate(Alpha_mean):
-    #             for iA, amplitude in enumerate(Amplitudes):
-    #                 yml, batch = create_step_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3d, yml, sim_dir, basename=airfoil_name, nSpan=nSpan, density=density, viscosity=viscosity, batch_template=batch_template, nramp=nramp)
-    #                 print('[YML]', yml)
-    #                 print('[BAT]', batch)
+
+            try:
+                os.remove(default_yaml_file)
+            except:
+                pass
 
             # --- Write a batch file with all
             sbatch_file = os.path.join(sim_dir, '_sbatch_all.sh')
@@ -254,10 +181,6 @@ for nSpan in [4, 24, 121]:
                     f.write(f'{prefix}{bb}\n')
             print('SBatch:    ', sbatch_file)
 
-            if iRe==0:
-                print('[WARN] breaking after first Re')
+            if iRe==0 and len(Reynolds)>1:
+                print('[WARN] STOPPING AT ONE REYNOLDS')
                 break
-
-    #     if ia==0:
-    #         break
-

@@ -36,13 +36,17 @@ self=db_stat
 
 print(db_stat)
 # print(db_stat.copy())
-
+# --- Save db
 db_stat.save('./experiments/DB_misc_stat.pkl')
 
-# 
-# db_stat2 = DataFrameDatabase('experiments/glasgow/DB_exp_static.pkl')
-# # 
-# db2 = db_stat.concat(db_stat2, inplace=False)
+# --- Load Glasgow 
+db_stat_gl = DataFrameDatabase('experiments/glasgow/DB_exp_static.pkl')
+
+# --- concatenate
+db = db_stat_gl.concat(db_stat, inplace=False)
+
+db.save('./experiments/DB_all_stat.pkl')
 # # 
 # # print(db_stat)
-# print(db2)
+print(db)
+import pdb; pdb.set_trace()

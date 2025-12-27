@@ -6,29 +6,21 @@ from nalulib.tools.dataframe_database import DataFrameDatabase
 
 airfoil_dir ='airfoil_meshes'
 mesh_dir    ='meshes'
-#'L303_MISSING.csv
-#'S824_MISSING.csv,
-# airfoil_names=[
-# 'LS-0421MOD',
-# 'LS-0417MOD',
-# 'NACA4415',
-# 'S801',
-# 'S809',
-# 'S810',
-# 'S812',
-# 'S813',
-# 'S814',
-# 'S815',
-# 'S825',
-# ]
 
-db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
-db = db.select({'Roughness':'Clean'})
+# db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
+# db = db.select({'Roughness':'Clean'})
+# db = db.query('airfoil!="L303"') # No geometry for L303
+# airfoil_names = db.configs['airfoil'].unique()
+
+db = DataFrameDatabase('experiments/DB_all_stat.pkl')
 db = db.query('airfoil!="L303"') # No geometry for L303
-airfoil_names = db.configs['airfoil'].unique()
+airfoil_names_db = db['airfoil'].unique()
 
-# airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
-airfoil_names = ['nlf1-0416'] 
+
+airfoil_names = []
+airfoil_names += ['S809'] 
+# airfoil_names += airfoil_names_db
+airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
 
 
 l_res=600
@@ -62,27 +54,19 @@ if not os.path.exists(mesh_dir):
 # --- Loop through airfoils and create meshes
 FAILED=[]
 for airfoil_name in airfoil_names:
+    print('----------------------------------------------------------------------')
+    print(f'{airfoil_name:-^70}')
+    print('----------------------------------------------------------------------')
     input_file = os.path.join(airfoil_dir, f'{airfoil_name}_l{l_res}.csv')
     print('Input file:', input_file)
 
     db_arf = db.select({'airfoil':airfoil_name})
-    Reynolds = db_arf.configs['Re'].round(1).unique()
-
-    if len(db_arf)==0:
-        if airfoil_name == 'du00-w-212':
-            Reynolds=[3]; re=Reynolds[0]
-        elif airfoil_name == 'nlf1-0416':
-            Reynolds=[4]; re=Reynolds[0]
-        elif airfoil_name == 'ffa-w3-211':
-            Reynolds=[10]; re=Reynolds[0]
-        else:
-            raise NotImplementedError(airfoil_name)
-    else:
-        Reynolds = np.unique(list(Reynolds) + [0.1, 0.5, 0.75, 1, 2, 5, 10])
-        print('Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
+    Reynolds = db_arf['Re'].round(2).sort_values().unique()
+    print('Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
 
     for re in Reynolds:
-        output_file = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
+        print(f'---------------------------- Re={re}')
+        output_file = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
         if not os.path.exists(output_file):
             print(f'Creating mesh for {airfoil_name} with Re={re}M, N={N}, y+={yplus}')
             try:
@@ -97,6 +81,3 @@ for airfoil_name in airfoil_names:
 
 for failed in FAILED:
 	print(f'Failed to create mesh for {failed[0]} with Re={failed[1]}M, N={failed[2]}, y+={failed[3]}')
-# input_file = '../../airfoils/S809_l600.csv'
-# output_file = './S809_l600_m145_n1_re2M_y1.2mu.exo'
-#pyhyp(input_file=input_file, output_file=output_file, re=2e6, marchDist=75, n=145,  yplus=0.1, verbose=True)

@@ -7,19 +7,27 @@ from nalulib.nalu_aseq import nalu_aseq
 from nalulib.nalu_batch import nalu_batch
 from nalulib.exodus_rotate import exo_rotate
 from nalulib.exodus_quads2hex import exo_zextrude
+from helper_functions import airfoil2configStat
 
-
+db = DataFrameDatabase('experiments/DB_all_stat.pkl')
+db = db.query('airfoil!="L303"') # No geometry for L303
+airfoil_names_db = db['airfoil'].unique()
 
 # --- Main inputs
 submit=False
 aseq = np.arange(-20, 25+3/2, 1)
 # aseq = np.arange(-2, 3+3/2, 1)
 one_job = False
+nT_steady = 200  # leads to approx 10k time steps
 
+airfoil_names = []
+airfoil_names += ['S809'] 
+# airfoil_names += airfoil_names_db
+airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
 
 mesh_dir    ='meshes'
 case_dir    ='cases_polar'
-nalu_template ='_templates/airfoil_name/input_2d_rans_du00-w-212.yaml'
+nalu_template ='_templates/airfoil_name/input_2d_rans.yaml'
 current_path = os.getcwd()
 mem=None
 nodes=1
@@ -40,30 +48,11 @@ else:
     batch_template ='_templates/submit-bash.sh'
     hours=2
 
-chord=1
-DENSITY= 1.2
-VISCOSITY = 9.0E-06
-SPECIFIC_DISSIPATION_RATE= 114.54981120000002
-TURBULENT_KE= 0.0013020495206400003
-DT_FACT=0.02
-
-
 # TODO TI
 N = 150
 yplus=0.1
 
-# 
-db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
-db = db.select({'Roughness':'Clean'})
-db = db.query('airfoil!="L303"') # No geometry for L303
-airfoil_names = db.configs['airfoil'].unique()
-
-# airfoil_names =  list(airfoil_names) + ['du00-w2-212', 'nlf1-0416'] 
-airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
-airfoil_names = ['NACA4415','S815']
-# airfoil_names = ['S809']
-
-print(f'-------------------------------- SETUP ---------------------------------')
+print(f'{f"SETUP":-^70}')
 print(f'cluster      : {cluster}')
 print(f'hours        : {hours}')
 print(f'ntasks       : {ntasks}')
@@ -72,79 +61,35 @@ print(f'airfoil_names: {airfoil_names}')
 
 yml_template = NALUInputFile(nalu_template)
 
-All_Batches = []
-All_Inputs  = []
-
 # --- Loop through airfoils and create meshes
-for airfoil_name in airfoil_names:
-    print(f'---------------------------- {airfoil_name} ------------------------')
-    db_arf = db.select({'airfoil':airfoil_name})
-
-    Reynolds = db_arf.configs['Re'].round(1).unique()
-    Reynolds = [0.75, 1.0, 1.25, 1.4, 1.5]
-    density=DENSITY
-    viscosity=VISCOSITY
-    dt_fact=DT_FACT
-    specific_dissipation_rate= SPECIFIC_DISSIPATION_RATE
-    turbulent_ke=TURBULENT_KE
-
-
-    # --- HACK ['du00-w-212', 'nlf1-0416', 'ffa'], not in database:
-    hack=False
-    if len(db_arf)==0:
-        hack=True
-        if airfoil_name == 'du00-w-212':
-            Reynolds=[3]; re=Reynolds[0]
-            #mesh_file_2d = './du00-w-212/grids/du00w212_re3M_y03_aoa0_n1.exo'
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
-            density=1.225
-            viscosity=1.392416666666667e-05
-            #dt_fact=0.55
-        elif airfoil_name == 'nlf1-0416':
-            Reynolds=[4]; re=Reynolds[0]
-            #mesh_file_2d = './nl1-0416/grids/nlf1-0416_re4M_y2_aoa0_n1.exo'
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
-            density=1.225
-            viscosity=1.0443125000000002e-05
-            specific_dissipation_rate= 460.34999999999997
-            turbulent_ke=0.00392448375
-            #dt_fact=0.55
-
-
-        elif airfoil_name == 'ffa-w3-211':
-            Reynolds=[10]; re=Reynolds[0]
-            #mesh_file_2d = './ffa/grids/ffa_w3_211_near_body_aoa0_n1.exo'
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
-        else:
-            raise NotImplementedError(airfoil_name)
-#     if airfoil_name not in ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']:
-#         break
-
-
-    Reynolds.sort()
-    Reynolds = Reynolds[-1::-1]
+for ia, airfoil_name in enumerate(airfoil_names):
+    print('\n----------------------------------------------------------------------')
+    print(f'{airfoil_name:-^70}')
+    print('----------------------------------------------------------------------')
+    config, db_arf = airfoil2configStat(airfoil_name, db)
+    Reynolds = config['Reynolds']
     print('Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
 
-    for re in Reynolds:
+    for iRe, re in enumerate(Reynolds):
+        print(f'{f"Re={re:.2f}":-^70}')
 
-        # TODO TODO TODO TO REMEMBER NEAR BODY!
-        if hack:
-            pass
-        else:
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
-
+        # --- Main paths and job names
+        mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
         if not os.path.exists(mesh_file_2d):
-            print('[WARN] Mesh not found: ', mesh_file_2d)
-            continue
+            raise Exception('[WARN] Mesh not found: ', mesh_file_2d)
 
-        jobname = airfoil_name + '_re{:04.1f}M'.format(re)
+        jobname = airfoil_name + '_re{:05.2f}M'.format(re)
         sim_dir = os.path.join(case_dir, jobname)
         print('sim_dir:   ', sim_dir)
         if not os.path.exists(sim_dir):
             os.makedirs(sim_dir)
+        # --- Scales
+        U = float(re*1e6 *config['viscosity'] /(config['density'] * config['chord'] ))
+        dt = float(np.around(config['dt_fact'] * config['chord'] / U, 8))
+        T = config['chord']/U*nT_steady
 
-        #mesh_file_2d_rel = os.path.relpath(mesh_file_2d, sim_dir)
-
+        # --- Creating meshes
+	# Nothing to do
         # --- Create a input file with proper mesh and flow parameters
         default_yaml_file = os.path.join(sim_dir, 'input.yaml')
 
@@ -156,22 +101,29 @@ for airfoil_name in airfoil_names:
         #bg = realms[0]
         af = realms[-1]
         af['mesh'] = os.path.relpath(mesh_file_2d, sim_dir).replace('\\', '/')
-        U = float(re*1e6 *viscosity /(density * chord ))
-        dt = float(np.around(dt_fact * chord / U, 8))
+
+
+        # --- Flow variables
         yml.velocity = [U, 0, 0]
-        yml.density = density
-        yml.viscosity = viscosity
+        yml.density = config['density']
+        yml.viscosity = config['viscosity']
 
-        yml.inflow_turbulent_ke               = turbulent_ke
-        yml.outflow_turbulent_ke              = turbulent_ke
-        yml.IC_turbulent_ke                   = turbulent_ke
-        yml.inflow_specific_dissipation_rate  = specific_dissipation_rate
-        yml.outflow_specific_dissipation_rate = specific_dissipation_rate
-        yml.IC_specific_dissipation_rate      = specific_dissipation_rate
+        yml.inflow_turbulent_ke               = config['turbulent_ke']
+        yml.outflow_turbulent_ke              = config['turbulent_ke']
+        yml.IC_turbulent_ke                   = config['turbulent_ke']
+        yml.inflow_specific_dissipation_rate  = config['specific_dissipation_rate']
+        yml.outflow_specific_dissipation_rate = config['specific_dissipation_rate']
+        yml.IC_specific_dissipation_rate      = config['specific_dissipation_rate']
 
-
+        # --- Time
         ti['time_step'] = dt
-        # ti['termination_step_count'] = int(np.max(t)/dt)
+        ti['termination_step_count'] = int(T/dt)
+        print('>>>>>>>>>>>', int(T/dt))
+
+        # --- Output and restart
+        yml.remove_output()
+        yml.remove_restart()
+
         yml.save(default_yaml_file)
         print('Main yaml: ', default_yaml_file)
 
@@ -179,15 +131,17 @@ for airfoil_name in airfoil_names:
         nalu_files, nalu_batches = nalu_aseq(input_file=default_yaml_file,
                   aseq=aseq, 
                   batch_file=batch_template,
-                  jobname=jobname+'_',
+                  jobname=f'p_n1_'+jobname+'_',
                   submit=submit,
                   one_job=one_job,
                   raiseError=False, # <<<<<<<<<<<<
                   hours=hours, nodes=nodes, ntasks=ntasks, mem=mem, cluster=cluster)
                   #sim_dir = sim_dir,
+        try:
+            os.remove(default_yaml_file)
+        except:
+            pass
 
-        All_Batches+=nalu_batches
-        All_Inputs+=nalu_files
 
         # --- Write a batch file with all
         sbatch_file = os.path.join(sim_dir, '_sbatch_all.sh')
@@ -198,12 +152,6 @@ for airfoil_name in airfoil_names:
                 f.write(f'{prefix}{bb}\n')
         print('SBatch:    ', sbatch_file)
 
-
-# --- 
-sbatch_file_all='_bashes_'+os.path.basename(__file__).replace('.py', '_list.sh')
-with open(sbatch_file_all, 'w', newline="\n") as f:
-    for b in All_Batches:
-        prefix='sbatch ' if cluster!='local' else ''
-        f.write(f'{prefix}{b}\n')
-print('SBatch all:', sbatch_file_all)
-
+        if iRe==0 and len(Reynolds)>1:
+            print('[WARN] STOPPING AT ONE REYNOLDS')
+            break

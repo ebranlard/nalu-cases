@@ -174,7 +174,7 @@ def create_pitching_case(alpha_mean, amplitude, frequency, re, mesh_file_2d, bac
     else:
         pp = af['post_processing'][0]['output_file_name'] = 'forces_'+basename+'.csv'
 
-    # Flow variables
+    # --- Flow variables
     yml.velocity = [U, 0, 0]
     yml.density = density
     yml.viscosity = viscosity
