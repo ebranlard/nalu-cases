@@ -34,7 +34,7 @@ for nSpan in [4, 24, 121]:
 
 
     mesh_dir    ='meshes'
-    case_dir    ='cases_polar3d_n{}_z{}'.format(nSpan,int(zSpan))
+    case_dir    ='cases_polar3d_z{}_n{}'.format(int(zSpan), nSpan)
     if SS_WING_PP:
         nalu_template ='_templates/airfoil_name/input_pp.yaml'
     else:

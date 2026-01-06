@@ -39,7 +39,7 @@ if 'ebranlard' in current_path: # Unity
     ntasks=16
 elif 'ebranlar' in current_path: # Kestrel
     cluster = 'kestrel'
-    batch_template ='_templates/submit-kestrel_n1.sh'
+    batch_template ='_templates/submit-kestrel.sh'
     hours=0.5
 else:
     #cluster = 'local'
