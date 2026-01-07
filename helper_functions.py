@@ -294,6 +294,35 @@ def load_json_chirp(json_path, verbose=False, plot=False):
     info['verbose']=verbose
     info['plot']=plot
 
+    if 'S809' in json_path:
+        info['viscosity'] = info.get('viscosity',  9e-06)
+        info['density']   = info.get('density',  1.2)
+        if '0.8' in json_path:
+            info['re']        = info.get('re',  0.8)
+        elif '0.75' in json_path:
+            info['re']        = info.get('re',  0.75)
+        else:
+            raise Exception()
+    elif 'du' in json_path:
+        info['viscosity'] = info.get('viscosity',  1.392416666666667e-05)
+        info['density'] = info.get('viscosity',  1.225)
+        info['re'] = info.get('re',  3)
+    elif 'nlf' in json_path:
+        info['viscosity'] = info.get('viscosity', 1.0443125000000002e-05)
+        info['density'] = info.get('viscosity',  1.225)
+        info['re'] = info.get('re',  4)
+    elif 'ffa' in json_path:
+        info['viscosity'] = info.get('viscosity',  9e-06)
+        info['density']   = info.get('density',  1.2)
+        info['re']        = info.get('re',  10)
+    else:
+        raise Exception()
+
+
+
+
+
+
     t_chirp, theta_chirp, info2 = generate_step_chirp(**info)
     df_chirp = pd.DataFrame(data=np.column_stack([t_chirp, np.degrees(theta_chirp)]), columns=['Time_[s]','angle_[deg]'])
 

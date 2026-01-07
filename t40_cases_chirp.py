@@ -106,7 +106,7 @@ airfoil_names = db.configs['airfoil'].unique()
 # airfoil_names =  list(airfoil_names) + ['du00-w2-212', 'nlf1-0416'] 
 # airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
 airfoil_names = ['S809']
-airfoil_names += ['du00-w-212', 'ffa-w3-211', 'nlf1-0416']
+airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
 # airfoil_names = ['nlf1-0416']
 # airfoil_names = ['du00-w-212']
 
@@ -245,6 +245,10 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
         batch_file =None
 
     print('Saving yaml...')
+    info['viscosity'] = viscosity
+    info['density']   = density
+    info['re']        = re
+
     yml.save(yaml_file)
     with open(yaml_file.replace('.yaml','.json'), "w") as f:
         json.dump(info, f, indent=2)

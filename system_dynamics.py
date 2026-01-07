@@ -78,6 +78,52 @@ def tfestimate_stitched(x, y, fs, f_stitch=1.5, returnAll=False):
     else:
         return f_stitched[sort_idx], H_stitched[sort_idx]
 
+def merge_transfer_functions(f1, H1, C1, f2, H2, C2, f_dense=None):
+    """
+    Merges two Transfer Functions (H) using Coherence (C) as a weighting factor.
+    Automatically interpolates both to a common frequency grid.
+    
+    Parameters:
+        f1, H1, C1: Freq, Complex H, and Coherence for Run 1 (e.g., Fast Chirp)
+        f2, H2, C2: Freq, Complex H, and Coherence for Run 2 (e.g., Slow Chirp)
+        f_dense: Optional target frequency grid.
+    """
+    # 1. Create a common frequency grid (union of both ranges)
+    if f_dense is None:
+        f_min = min(f1.min(), f2.min())
+        f_max = max(f1.max(), f2.max())
+        # Use the density of the finer frequency array
+        n_points = max(len(f1), len(f2))
+        f_target = np.linspace(f_min, f_max, n_points)
+    else:
+        f_target = f_dense
+
+    # 2. Interpolate Complex H and Coherence to the common grid
+    # Interpolating complex numbers: interpolate Real and Imaginary separately
+    H1_interp = np.interp(f_target, f1, np.real(H1)) + 1j*np.interp(f_target, f1, np.imag(H1))
+    H2_interp = np.interp(f_target, f2, np.real(H2)) + 1j*np.interp(f_target, f2, np.imag(H2))
+    
+    C1_interp = np.interp(f_target, f1, C1)
+    C2_interp = np.interp(f_target, f2, C2)
+
+    # 3. Calculate Weights based on Coherence
+    # We use a soft-max approach: Weight = C^4 to strongly prefer the higher coherence
+    # while maintaining a smooth transition.
+    p = 4 
+    w1 = C1_interp**p
+    w2 = C2_interp**p
+    
+    # Handle the case where both coherences are zero to avoid division by zero
+    total_w = w1 + w2
+    total_w[total_w == 0] = 1e-12
+    
+    # 4. Perform the Merge
+    H_merged = (H1_interp * w1 + H2_interp * w2) / total_w
+    C_merged = (C1_interp * w1 + C2_interp * w2) / total_w
+    
+    return f_target, H_merged, C_merged
+
+
 
 def tfestimate(x, y, fs, nperseg=None, n_pad_factor=1, n_segments=8, returnCoh=False, verbose=True):
     """
