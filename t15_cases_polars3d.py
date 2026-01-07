@@ -117,7 +117,7 @@ for nSpan in [4, 24, 121]:
             # --- Creating meshes
             extruded_mesh = os.path.join(local_mesh_dir, 'input_mesh'+'_n{}.exo'.format(nSpan))
             if not os.path.exists(extruded_mesh):
-                exo_zextrude(mesh_file_2d, extruded_mesh, nSpan=nSpan, zSpan=zSpan, zoffset=0.0, verbose=False, airfoil2wing=True, ss_wing_pp=True, profiler=False, ss_suffix=None)
+                exo_zextrude(mesh_file_2d, extruded_mesh, nSpan=nSpan, zSpan=zSpan, zoffset=0.0, verbose=False, airfoil2wing=True, ss_wing_pp=SS_WING_PP, profiler=False, ss_suffix=None)
 
             # --- Create a input file with proper mesh and flow parameters
             default_yaml_file = os.path.join(sim_dir, 'input.yaml')
