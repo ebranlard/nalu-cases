@@ -77,15 +77,16 @@ db_stat2 = DataFrameDatabase('./experiments/DB_misc_stat.pkl')
 
 
 airfoil_names =  list(airfoil_names) 
-airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211'] + ['S809'] #  +  list(airfoil_names)
+airfoils_names =[]
+# airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211'] + ['S809'] #  +  list(airfoil_names)
 # airfoil_names = ['du00-w-212']
-airfoil_names = ['S809']
+# airfoil_names = ['S809']
 # airfoil_names +=['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
 # airfoil_names = ['S809','NACA4415']
 # airfoil_names = ['NACA4415']
 # airfoil_names = ['S813']
 # airfoil_names = ['LS-0421MOD']
-# airfoil_names =['ffa-w3-211']
+airfoil_names =['ffa-w3-211']
 # airfoil_names =['du00-w-212']
 # airfoil_names =['nlf1-0416']
 

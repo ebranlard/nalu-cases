@@ -17,7 +17,7 @@ import tempfile
 # from scipy.interpolate import UnivariateSpline
 # import pickle as pkl
 from welib.essentials import *
-from welib.weio.fast_input_file import FASTInputFile
+from welib.weio.fast_input_file import FASTInputFile, ADPolarFile
 from welib.weio.csv_file import CSVFile
 
 class TemplatedUAAdvr:
@@ -38,7 +38,7 @@ class TemplatedUAAdvr:
         self._dat0 = None 
         # --- Current simulation data
         self.dvr = None 
-        self.dat = None 
+        self._dat = None  # See dat.setter
         self._dvr_filename = None 
         #self.dvr_filename = os.path.os.path.basename(dvr)
         self.sim_dir = sim_dir if sim_dir is not None else tempfile.gettempdir() 
@@ -55,7 +55,7 @@ class TemplatedUAAdvr:
         if dat0 is None:
             basedir = os.path.dirname(dvr0)
             dat0 = os.path.join(basedir, self._dvr0['AirFoil'].replace('"','')).replace('\\','/')
-        self._dat0 = FASTInputFile(dat0)
+        self._dat0 = ADPolarFile(dat0)
         self._dvr0_filename = dvr0 # template filename cannot be overwritten
         self._dat0_filename = dat0 # template filename cannot be overwritten
 
@@ -108,7 +108,7 @@ class TemplatedUAAdvr:
             raise NotImplementedError()
 
     # --------------------------------------------------------------------------------}
-    # --- Properties 
+    # --- Properties Filenames
     # --------------------------------------------------------------------------------{
     @property
     def dvr_filename(self):
@@ -144,6 +144,9 @@ class TemplatedUAAdvr:
         if self.dvr_filename is not None:
             return self.dvr_filename.replace('.dvr','_motionTS.csv')
 
+    # --------------------------------------------------------------------------------}
+    # --- Properties DataFrames
+    # --------------------------------------------------------------------------------{
     @property 
     def aeroTS(self):
         if self._aeroTS is None:
@@ -214,6 +217,17 @@ class TemplatedUAAdvr:
         df.columns = emptyMotionTS().columns
         self._motionTS = df
 
+    # --------------------------------------------------------------------------------}
+    # --- Properties in alphabetical order
+    # --------------------------------------------------------------------------------{
+    @property 
+    def dat(self):
+        return self._dat
+
+    @dat.setter
+    def dat(self, data):
+        self.set_polar(data)
+
     @property
     def re(self):
         c   = self['Chord'] # Chord length (m)
@@ -250,49 +264,32 @@ class TemplatedUAAdvr:
                 except:
                     FAIL('Cannot access inflow TS')
         return U
-# 
-#     def update_polar(self, df, calc_unsteady=False):
-#         for key in ("AFCoeff", "NumAlf", "alpha0", "alpha1", "alpha2",
-#                     "C_nalpha", "Cn1", "Cn2", "Cd0", "Cm0"):
-#             try:
-#                 del self.dat[key]
-#             except KeyError:
-#                 pass
-#         df_unique = df.drop_duplicates(subset="Alpha_[deg]", keep="first")
-#         df_unique = df_unique.sort_values("Alpha_[deg]").reset_index(drop=True)
-#         arr = np.column_stack((
-#             df_unique["Alpha_[deg]"].values,
-#             df_unique["Cl_[-]"].values,
-#             df_unique["Cd_[-]"].values,
-#             df_unique["Cm_[-]"].values
-#         ))
-#         self.dat["AFCoeff"] = arr
-#         self.dat["NumAlf"]   = arr.shape[0]
-#         pol = Polar(alpha=arr[:,0],
-#                     cl=arr[:,1],
-#                     cd=arr[:,2],
-#                     cm=arr[:,3],
-#                     Re=self.sim_config['Re'])
-#         try:
-#             alpha0, alpha1, alpha2, cn_slope, cn1, cn2, cd0, cm0 = pol.unsteadyParams()
-#         except:
-#             print('FAIL UNSTEADY POALR')
-#             raise 
-#             
-#         self.dat["alpha0"]    = round(alpha0, 4)
-#         self.dat["alpha1"]    = round(alpha1, 4)
-#         self.dat["alpha2"]    = round(alpha2, 4)
-#         self.dat["C_nalpha"]  = round(cn_slope, 4)
-#         self.dat["Cn1"]       = round(cn1, 4)
-#         self.dat["Cn2"]       = round(cn2, 4)
-#         self.dat["Cd0"]       = round(cd0, 4)
-#         self.dat["Cm0"]       = round(cm0, 4)
-#    
-#     def getInflowVel(self, config):
-#         Re = config['Re']
-#         InflowVel = Re *1000000* self.dvr['KinVisc'] / self.dvr['Chord']
-#         self.dvr['InflowVel'] = InflowVel
 
+
+# 
+    def set_polar(self, data, Re=None):
+        if isinstance(data, str):
+            INFO('UAAdvr, setting polar from string')
+            self._dat = ADPolarFile(data)
+
+        elif isinstance(data, pd.DataFrame):
+            from welib.airfoils.Polar import Polar
+            INFO('UAAdvr, setting polar from dataframe')
+            M = df.values
+            pol = Polar(alpha=M[:,0], cl=M[:,1], cd=M[:,2], cm=M[:,3], Re=Re) 
+            dat = pol.toAeroDyn(ADfilename, comment=comment, Re=Re) # Returns ADPolarFile
+            self._dat = dat
+
+        elif isinstance(data, ADPolarFile):
+            self._dat = data
+
+        elif isinstance(data, FASTInputFile):
+            INFO('UAAdvr, setting polar from FASTInputFile')
+            import pdb; pdb.set_trace()
+
+    # --------------------------------------------------------------------------------}
+    # ---  
+    # --------------------------------------------------------------------------------{
     def update(self, config):
         for param_name, param_value in self.sim_config.items():
            self.dvr[param_name] = param_value
@@ -301,7 +298,6 @@ class TemplatedUAAdvr:
 #        self.dat['NumCoords'] = self.airfoil_coord
 #         self.new_dat = os.path.join(self.sim_dir, f'{filebase}.dat')
 #         self.dat.write(self.new_dat)
-#         self.dvr['AirFoil'] = os.path.basename(self.new_dat)
 
 
 
@@ -319,26 +315,31 @@ class TemplatedUAAdvr:
             if verbose:
                 print('Writing', self.aeroTSFile)
             self.aeroTS.to_csv(self.aeroTSFile, index=False)
-            self['AeroTSFile'] = self.aeroTSFile
+            self['AeroTSFile'] = '"'+os.path.relpath(self.aeroTSFile, base_dir)+'"'
 
         elif self['SimMod'] == 3:
             if self['InflowMod'] == 2:
                 if verbose:
                     print('Writing', self.inflowTSFile)
                 self.inflowTS.to_csv(self.inflowTSFile, index=False)
-                self['InflowTSFile'] = self.inflowTSFile
+                self['InflowTSFile'] = '"'+os.path.relpath(self.inflowTSFile, base_dir)+'"'
 
             if self['MotionMod'] == 2:
                 if verbose:
                     print('Writing', self.motionTSFile)
                 self.motionTS.to_csv(self.motionTSFile, index=False)
-                self['MotionTSFile'] = os.path.relpath(self.motionTSFile, base_dir)
+                self['MotionTSFile'] = '"'+os.path.relpath(self.motionTSFile, base_dir)+'"'
         
         if verbose:
             print('Writing', self.dat_filename)
             print('Writing', self.dvr_filename)
 
+        self.dvr['AirFoil'] = '"'+os.path.relpath(self.dat_filename, base_dir)+'"'
         self.dat['NumCoords'] = 0
+        if np.all(np.isnan(self.dat['AFCoeff'][:,3])):
+            WARN('UAAdvr: Cm is NaN in polar, replacing it with 0')
+        self.dat['AFCoeff'][:,3] = 0
+
         self.dat.write(self.dat_filename)
         self.dvr.write(self.dvr_filename)
 
@@ -395,19 +396,6 @@ class TemplatedUAAdvr:
         else:
             raise NotImplementedError()
 
-
-
-#     
-#     def sweep(self, idx):
-#     # Aggiorna tutti i parametri della simulazione nei file di input
-#         for param_name, param_value in self.sim_config.items():
-#             self.dvr[param_name] = param_value
-#             self.dat[param_name] = param_value
-#         # Aggiorna anche le coordinate se serve
-#         self.dat['NumCoords'] = self.airfoil_coord
-#         filebase =f'AeroDyn_{idx}.dat'
-#         self.dvr['AirFoil'] = filebase
-# 
 
 def emptyAeroTS(t=None):
     if t is None:

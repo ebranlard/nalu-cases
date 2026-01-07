@@ -246,57 +246,63 @@ def postpro_cycles_loops(dw, info):
 # res_dir = '_results'
 # out_dir = '_results/_chirp/'
 # figout_dir = '_results/_figs_chirp/'
+ADDir        = '_results/_polars_AD/'
+
+
 
 cases=[]
-cases+=[{'airfoil_name':'S809'      , 'n':24, 're':0.8}]
-cases+=[{'airfoil_name':'du00-w-212', 'n':4 , 're':3}]
-cases+=[{'airfoil_name':'du00-w-212', 'n':22, 're':3}]
-cases+=[{'airfoil_name':'nlf1-0416' , 'n':24, 're':4}]
-cases+=[{'airfoil_name':'ffa-w3-211', 'n':24, 're':10}]
+cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':''    }]
+cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HR' }]
+cases+=[{'airfoil_name':'du00-w-212' , 'n':4  , 're':3   , 'suffix':''    }]
+cases+=[{'airfoil_name':'du00-w-212' , 'n':22 , 're':3   , 'suffix':''    }]
+cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':''    }]
+cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':''    }]
+cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'_HR' }]
 
-
-# for cs in cases[0:0]:
+for cs in cases:
 for cs in [cases[0]]:
-    print(f"------------------------- {cs['airfoil_name']} - n={cs['n']}")
+    airfoil_name = cs['airfoil_name']
+    re           = cs['re']
+    n            = cs['n']
+    suffix       = cs['suffix']
+    if airfoil_name == 'ffa-w3-211':
+        base = airfoil_name + '_re{:05.2f}M'.format(re) + '_CFD2D'
+    elif n==22:
+        base = airfoil_name + '_re{:05.2f}M'.format(re) + '_CFD3D_n{}'.format(24)
+    else:
+        base = airfoil_name + '_re{:05.2f}M'.format(re) + '_CFD3D_n{}'.format(cs['n'])
+    print(f"------------------------- {base}-------------")
 
     chord=1
     span=4
 
-    yml_path  = './_results/cases_chirp_n{}/{}/{}_re{:04.1f}_mean00_A01.yaml'.format(cs['n'], cs['airfoil_name'], cs['airfoil_name'], cs['re'])
-    csv_path  = './_results/cases_chirp_n{}/{}/forces_{}_re{:04.1f}_mean00_A01.csv'.format(cs['n'], cs['airfoil_name'], cs['airfoil_name'], cs['re'])
-    # yaml_path  = os.path.join('./_results/cases_chirp_n4/du00-w-212/du00-w-212_re03.0_mean00_A01.yaml')
-    # yaml_path  = os.path.join('./_results/cases_chirp_n4/du00-w-212/du00-w-212_re03.0_mean00_A01.json')
-    # yaml_path  = os.path.join('./_results/cases_chirp_n24/nlf1-0416/nlf1-0416_re04.0_mean00_A01.json')
-    # yaml_path  = os.path.join('./_results/cases_chirp_n24/ffa-w3-211/f-0416/nlf1-0416_re04.0_mean00_A01.yaml')
+    yml_path  = '_results/cases_chirp_n{}/{}/{}_re{:04.1f}_mean00_A01{:s}.yaml'.format(cs['n'], cs['airfoil_name'], cs['airfoil_name'], cs['re'], cs['suffix'])
+    json_path = yml_path.replace('.yaml','.json')
+    dvr_path  = yml_path.replace('.yaml', '_UAA.dvr')
+    cfd_outb  = yml_path.replace('.yaml', '_CFD.outb')
+    uaa_outb  = dvr_path.replace('.dvr', '.outb')
+    
     print('YML:', yml_path)
-    print('CSV:', csv_path)
+    if not  os.path.exists(pol_path):
+        raise Exception('Pol not found: ', pol_path)
 
-    json_path  = yml_path.replace('.yaml','.json')
-    yml2_path  = yml_path.replace('.yaml','_no_motion.yaml')
-    if os.path.exists(yml2_path):
-        print('[INFO] loading yaml without motion')
-        yml = NALUInputFile(yml2_path, chord = chord, span = span)
-    else:
-        print('[INFO] Reading full yaml and saving with no motion')
-        yml = NALUInputFile(yml_path, chord = chord, span = span)
-        yml.save_no_motion(yml2_path)
-        #dfm = yml.extract_mesh_motion()
-
-    # --- Load Data
+    # --- JSON Info
     info, dfc    = load_json_chirp(json_path, verbose = False, plot = False)
-    dff, Fref, _ = yml.read_surface_forces()
 
+    # --- Read postprocessed CFD (see t41_chirp_ua)
+    dff = FASTOutputFile(cfd_outb).toDataFrame()
+    dfa = FASTOutputFile(uaa_outb).toDataFrame()
 
     # --- Pretty plot of chirp
     plot_chirp_full_time(info, dfc, dfm=None, dff=dff)
 
-
-    # --- Split signals
-    al, tr, st, ch, dw = split_chirp(info, dfc, dff, plot=False)
-
-    # --- Postpros
-    postpro_chirp_tf(ch, dw, info, st=st, plot=True) # Compute TF # TODO also from step
-    postpro_cycles_loops(dw, info)
+# 
+#     # --- Split signals
+#     al, tr, st, ch, dw = split_chirp(info, dfc, dff, plot=False)
+# 
+#     # --- Postpros
+#     postpro_chirp_tf(ch, dw, info, st=st, plot=True) # Compute TF # TODO also from step
+#     postpro_cycles_loops(dw, info)
 
 # postpro_step(st['t'], st['cl'], info, plot=True) # TODO TODO
 

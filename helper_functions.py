@@ -305,12 +305,12 @@ def load_json_chirp(json_path, verbose=False, plot=False):
             raise Exception()
     elif 'du' in json_path:
         info['viscosity'] = info.get('viscosity',  1.392416666666667e-05)
-        info['density'] = info.get('viscosity',  1.225)
-        info['re'] = info.get('re',  3)
+        info['density']   = info.get('density',  1.225)
+        info['re']        = info.get('re',  3)
     elif 'nlf' in json_path:
         info['viscosity'] = info.get('viscosity', 1.0443125000000002e-05)
-        info['density'] = info.get('viscosity',  1.225)
-        info['re'] = info.get('re',  4)
+        info['density']   = info.get('density',  1.225)
+        info['re']        = info.get('re',  4)
     elif 'ffa' in json_path:
         info['viscosity'] = info.get('viscosity',  9e-06)
         info['density']   = info.get('density',  1.2)
@@ -384,7 +384,10 @@ def plot_chirp_full_time(info, dfc, dfm=None, dff=None):
 
     # --- Plot force coeff
     if dff is not None:
-        axes[1].plot(dff['Time']    , dff['Cy']    , label='')
+        if 'Cl_[-]' in dff:
+            axes[1].plot(dff['Time']    , dff['Cl_[-]']    , label='Cl')
+        else:
+            axes[1].plot(dff['Time']    , dff['Cy']    , label='Cy')
 
     axes[1].set_xlabel('Time [s]')
     # axes[0].legend(loc='upper left')
@@ -395,8 +398,9 @@ def plot_chirp_full_time(info, dfc, dfm=None, dff=None):
 def split_chirp(info, dfc, dff, plot=True):
     t2  = dfc['Time_[s]'].values
     th = np.radians(dfc['angle_[deg]'].values)
-    t = dff['Time'].values
+    t  = dff['Time'].values
     cl = dff['Cy'].values
+    cd = dff['Cx'].values
     dt = t[1] - t[0]
     fs = 1.0 / dt
     
@@ -409,15 +413,17 @@ def split_chirp(info, dfc, dff, plot=True):
     idx_end   = i_trans-1
     t_tr      = t[idx_start:idx_end]
     cl_tr     = cl[idx_start:idx_end]
+    cd_tr     = cd[idx_start:idx_end]
     th_tr     = th[idx_start:idx_end]
     t2_tr     = t2[idx_start:idx_end]
-    tr = {'t':t_tr, 'cl': cl_tr, 'th':th_tr, 't2':t2_tr, 'I':[idx_start, idx_end]}
+    tr = {'t':t_tr, 'cd': cd_tr, 'cl': cl_tr, 'th':th_tr, 't2':t2_tr, 'I':[idx_start, idx_end]}
 
     # --- PHASE 1: STEP RESPONSE ---
     idx_start = i_trans-1
     idx_end   = i_trans + i_step
     t_st      = t[idx_start:idx_end]
     cl_st     = cl[idx_start:idx_end]
+    cd_st     = cl[idx_start:idx_end]
     th_st     = th[idx_start:idx_end]
     t2_st     = t2[idx_start:idx_end]
     st = {'t':t_st, 'cl': cl_st, 'th':th_st, 't2':t2_st, 'I':[idx_start, idx_end]}
