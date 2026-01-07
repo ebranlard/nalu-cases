@@ -8,6 +8,7 @@ from scipy.optimize import curve_fit
 
 from nalulib.tools.dataframe_database import DataFrameDatabase
 from nalulib.nalu_input import NALUInputFile
+from welib.weio.fast_output_file import FASTOutputFile
 from nalulib.nalu_forces import polar_postpro, standardize_polar_df, plot_polars
 from nalulib.nalu_forces_combine import nalu_forces_combine
 from nalulib.weio.csv_file import CSVFile
@@ -243,48 +244,33 @@ def postpro_cycles_loops(dw, info):
 # --- MAIN SCRIPTS
 # --------------------------------------------------------------------------------{
 # --- Main inputs
-# res_dir = '_results'
-# out_dir = '_results/_chirp/'
-# figout_dir = '_results/_figs_chirp/'
-ADDir        = '_results/_polars_AD/'
-
-
+out_dir = '_results/_data_paper/splits/'
 
 cases=[]
 cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':''    }]
-cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HR' }]
+# cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HR' }]
 cases+=[{'airfoil_name':'du00-w-212' , 'n':4  , 're':3   , 'suffix':''    }]
 cases+=[{'airfoil_name':'du00-w-212' , 'n':22 , 're':3   , 'suffix':''    }]
 cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':''    }]
 cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':''    }]
-cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'_HR' }]
+# cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'_HR' }]
+
+chord = 1
+span  = 4
+
+os.makedirs(out_dir, exist_ok=True)
 
 for cs in cases:
-for cs in [cases[0]]:
-    airfoil_name = cs['airfoil_name']
-    re           = cs['re']
-    n            = cs['n']
-    suffix       = cs['suffix']
-    if airfoil_name == 'ffa-w3-211':
-        base = airfoil_name + '_re{:05.2f}M'.format(re) + '_CFD2D'
-    elif n==22:
-        base = airfoil_name + '_re{:05.2f}M'.format(re) + '_CFD3D_n{}'.format(24)
-    else:
-        base = airfoil_name + '_re{:05.2f}M'.format(re) + '_CFD3D_n{}'.format(cs['n'])
-    print(f"------------------------- {base}-------------")
+# for cs in [cases[0]]:
+    base = cs['airfoil_name'] + '_re{:05.2f}M'.format(cs['re']) + cs['suffix']
+    print(f"------------------------- {base}------------- {cs['suffix']}")
 
-    chord=1
-    span=4
 
     yml_path  = '_results/cases_chirp_n{}/{}/{}_re{:04.1f}_mean00_A01{:s}.yaml'.format(cs['n'], cs['airfoil_name'], cs['airfoil_name'], cs['re'], cs['suffix'])
     json_path = yml_path.replace('.yaml','.json')
     dvr_path  = yml_path.replace('.yaml', '_UAA.dvr')
     cfd_outb  = yml_path.replace('.yaml', '_CFD.outb')
-    uaa_outb  = dvr_path.replace('.dvr', '.outb')
-    
-    print('YML:', yml_path)
-    if not  os.path.exists(pol_path):
-        raise Exception('Pol not found: ', pol_path)
+    uaa_outb  = yml_path.replace('.yaml', '_UAA.outb')
 
     # --- JSON Info
     info, dfc    = load_json_chirp(json_path, verbose = False, plot = False)
@@ -294,17 +280,54 @@ for cs in [cases[0]]:
     dfa = FASTOutputFile(uaa_outb).toDataFrame()
 
     # --- Pretty plot of chirp
-    plot_chirp_full_time(info, dfc, dfm=None, dff=dff)
+    # fig = plot_chirp_full_time(info, dfc, dfm=None, dff=dff, label='CFD')
+    # ax = fig.axes[1]
+    # ax.plot(dfa['Time_[s]'], dfa['Cl_[-]'], label='UAA')
+    # ax.legend()
 
-# 
-#     # --- Split signals
-#     al, tr, st, ch, dw = split_chirp(info, dfc, dff, plot=False)
+    def getdf(dd):
+        I = dd['I']
+        I -=I[0]
+        del dd['t2']
+        #maxlen = max(len(v) for v in dd.values())
+        df = pd.DataFrame({k: pd.Series(v[I]) for k, v in dd.items()})
+#         except:
+#             import pdb; pdb.set_trace()
+        return df
+
+    # --- Split signals
+    # All, Transients, Step, Chirp, Dwells
+    al, tr, st, ch, dw = split_chirp(info, dfc, dff, plot=False)
+    FASTOutputFile().writeDataFrame(df=getdf(al), filename = os.path.join(out_dir, 'all_'+base+'_CFD.outb'), tLabel='t')
+    FASTOutputFile().writeDataFrame(df=getdf(tr), filename = os.path.join(out_dir, 'trs_'+base+'_CFD.outb'), tLabel='t')
+    FASTOutputFile().writeDataFrame(df=getdf(st), filename = os.path.join(out_dir, 'stp_'+base+'_CFD.outb'), tLabel='t')
+    FASTOutputFile().writeDataFrame(df=getdf(ch), filename = os.path.join(out_dir, 'chp_'+base+'_CFD.outb'), tLabel='t')
+
+    postpro_step(st['t'], st['cl'], info, plot=True) # TODO TODO
+
+
+    al, tr, st, ch, dw = split_chirp(info, dfc, dfa, plot=False)
+    FASTOutputFile().writeDataFrame(df=getdf(al), filename = os.path.join(out_dir, 'all_'+base+'_UAA.outb'), tLabel='t')
+    FASTOutputFile().writeDataFrame(df=getdf(tr), filename = os.path.join(out_dir, 'trs_'+base+'_UAA.outb'), tLabel='t')
+    FASTOutputFile().writeDataFrame(df=getdf(st), filename = os.path.join(out_dir, 'stp_'+base+'_UAA.outb'), tLabel='t')
+    FASTOutputFile().writeDataFrame(df=getdf(ch), filename = os.path.join(out_dir, 'chp_'+base+'_UAA.outb'), tLabel='t')
+
+#     for dd in dw:
+#         k = dd['k']
+#         print(dd['k'], dd.keys())
+#         keys = ['t', 'cl', 'cd', 'th', 't2', 'I']
+#         d2 = {k: dd[k] for k in keys if k in dd}
+#         FASTOutputFile().writeDataFrame(df=getdf(d2), filename = os.path.join(out_dir, f'dw_k{k:3.1f}_'+base+'_CFD.outb'), tLabel='t')
+
+#     FASTOutputFile().writeDataFrame(df=pd.DataFrame(dw), filename = os.path.join(out_dir, 'chp_'+base+'_CFD.outb')
+
+
+
 # 
 #     # --- Postpros
 #     postpro_chirp_tf(ch, dw, info, st=st, plot=True) # Compute TF # TODO also from step
 #     postpro_cycles_loops(dw, info)
 
-# postpro_step(st['t'], st['cl'], info, plot=True) # TODO TODO
 
 
 plt.show()

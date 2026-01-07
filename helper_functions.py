@@ -330,29 +330,32 @@ def load_json_chirp(json_path, verbose=False, plot=False):
 
 
 
-def plot_chirp_full_time(info, dfc, dfm=None, dff=None):
+def plot_chirp_full_time(info, dfc, dfm=None, dff=None, label='CFD', col=None):
 
     main_indices = [
         info['indices_phases'][0],
         info['indices_phases'][0]+info['indices_phases'][1],
         info['indices_phases'][0]+info['indices_phases'][1]+info['indices_phases'][2],
     ]
-
+    t_total = dfc['Time_[s]'].values
 
 
     fig,axes = plt.subplots(2, 1, sharex=True, figsize=(12.8,4.8))
     fig.subplots_adjust(left=0.06, right=0.99, top=0.95, bottom=0.07, hspace=0.20, wspace=0.20)
+    axes[0].set_xlim(np.min(t_total), np.max(t_total))
+
     # --- Plot angle
-    axes[0].plot(dfc['Time_[s]'], dfc['angle_[deg]'], '-')
+    axes[0].plot(dfc['Time_[s]'], dfc['angle_[deg]'], '-', c='k')
     if dfm is not None:
         axes[0].plot(dfm['Time_[s]'], dfm['angle_[deg]'], '--', label='From yaml')
     axes[0].set_ylabel('Pitch [deg]')
+
+    # NOTE: s_factor = (2 * U) / chord   
     s_factor = info['s_factor']
     ax2 = axes[0].twiny()
     ax2.set_xlim(axes[0].get_xlim()[0] * s_factor, axes[0].get_xlim()[1] * s_factor)
-    ax2.set_xlabel('Dimensionless Time [s]')
+    ax2.set_xlabel(r'Dimensionless time, $2Ut/c$ [-]')
 
-    t_total = dfc['Time_[s]'].values
     dwell_info=info['dwells']
 
 
@@ -361,8 +364,10 @@ def plot_chirp_full_time(info, dfc, dfm=None, dff=None):
     icp = int((main_indices[1]+main_indices[2])/2)
 
     # tdict = dict(y=info['alpha_mean_deg']-1.0, ha='center', va='bottom', fontsize=9, bbox=dict(facecolor='white', alpha=0.6))
-    tdict = dict(y=info['alpha_mean_deg']-1.07, ha='center', va='bottom', fontsize=11) #, bbox=dict(facecolor='white', alpha=0.6))
-    tvline = dict(color='k', ls='--', lw=1.5)
+#     ax.text(vTime[t_mask][0], offset + p0*k, z_label, color=colors[i],  fontsize=9, fontweight='bold',
+#              bbox=dict(facecolor='white', edgecolor='none', alpha=0.8, pad=0.01))
+    tdict = dict(y=info['alpha_mean_deg']-0.57, ha='center', va='bottom', fontsize=11, bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=.02), fontweight='bold') #, c='')
+    tvline = dict(color='k', ls=':', lw=1.0)
 
     axes[0].text(t_total[itr], s=f"Transients", **tdict)
     axes[0].text(t_total[ist], s=f"Step"      , **tdict)
@@ -370,27 +375,35 @@ def plot_chirp_full_time(info, dfc, dfm=None, dff=None):
 
     for idx in main_indices:
         axes[0].axvline(t_total[idx-1], **tvline)
+        axes[1].axvline(t_total[idx-1], **tvline)
     # Dwell Boundaries (Iterate through dwell_info)
     for i,d in enumerate(dwell_info):
         # We only need the end boundary for each dwell since the start 
         # is the end of the previous one
         axes[0].axvline(t_total[d['end_idx']-1], **tvline)
+        axes[1].axvline(t_total[d['end_idx']-1], **tvline)
         # Label the k-value on the plot
         t_mid = t_total[d['start_idx']] + (d['duration_s'] / 2)
         axes[0].text(t_mid, s=f"k={d['k']}", **tdict)
 
 
-    axes[0].set_xlim(np.min(t_total), np.max(t_total))
-
     # --- Plot force coeff
     if dff is not None:
         if 'Cl_[-]' in dff:
-            axes[1].plot(dff['Time']    , dff['Cl_[-]']    , label='Cl')
+            key = 'Cl_[-]'
+            axes[1].plot(dff['Time_[s]']    , dff[key]    , label=label, c=col)
         else:
-            axes[1].plot(dff['Time']    , dff['Cy']    , label='Cy')
+            key = 'Cy'
+            axes[1].plot(dff['Time']    , dff[key]    , label=label, c=col)
 
     axes[1].set_xlabel('Time [s]')
+    axes[1].set_ylabel(key.replace('_',' '))
     # axes[0].legend(loc='upper left')
+    axes[0].tick_params(direction='in', top=False, right=True, labelright=False, labeltop=False, which='both')
+    axes[1].tick_params(direction='in', top=False, right=True, labelright=False, labeltop=False, which='both')
+#     ax2.tick_params(direction='in', top=True, bottom=False, right=False, labelright=False, labeltop=True, which='both')
+
+    return fig
 
 
 
@@ -398,35 +411,35 @@ def plot_chirp_full_time(info, dfc, dfm=None, dff=None):
 def split_chirp(info, dfc, dff, plot=True):
     t2  = dfc['Time_[s]'].values
     th = np.radians(dfc['angle_[deg]'].values)
-    t  = dff['Time'].values
-    cl = dff['Cy'].values
-    cd = dff['Cx'].values
+    t  = dff['Time_[s]'].values
+    cl = dff['Cl_[-]'].values
+    cd = dff['Cd_[-]'].values
     dt = t[1] - t[0]
     fs = 1.0 / dt
     
     i_trans, i_step, i_chirp = info['indices_phases']
 
-    all = {'t':t, 'cl': cl, 'th':th, 't2':t2}
+    al = {'t':t, 'cl': cl, 'cd':cd, 'th':th, 't2':t2, 'I':np.arange(0,len(t))}
 
     # --- PHASE 0: Transients ---
     idx_start = 0
     idx_end   = i_trans-1
-    t_tr      = t[idx_start:idx_end]
+    t_tr      = t [idx_start:idx_end]
     cl_tr     = cl[idx_start:idx_end]
     cd_tr     = cd[idx_start:idx_end]
     th_tr     = th[idx_start:idx_end]
     t2_tr     = t2[idx_start:idx_end]
-    tr = {'t':t_tr, 'cd': cd_tr, 'cl': cl_tr, 'th':th_tr, 't2':t2_tr, 'I':[idx_start, idx_end]}
+    tr = {'t':t_tr, 'cd': cd_tr, 'cl': cl_tr, 'cd':cd_tr,'th':th_tr, 't2':t2_tr, 'I':np.arange(idx_start, idx_end)}
 
     # --- PHASE 1: STEP RESPONSE ---
     idx_start = i_trans-1
     idx_end   = i_trans + i_step
-    t_st      = t[idx_start:idx_end]
+    t_st      = t [idx_start:idx_end]
     cl_st     = cl[idx_start:idx_end]
-    cd_st     = cl[idx_start:idx_end]
+    cd_st     = cd[idx_start:idx_end]
     th_st     = th[idx_start:idx_end]
     t2_st     = t2[idx_start:idx_end]
-    st = {'t':t_st, 'cl': cl_st, 'th':th_st, 't2':t2_st, 'I':[idx_start, idx_end]}
+    st = {'t':t_st, 'cl': cl_st, 'cd':cd_st, 'th':th_st, 't2':t2_st, 'I':np.arange(idx_start, idx_end)}
 
     # --- PHASE 2: CHIRP TRANSFER FUNCTION ---
     idx_start = i_trans + i_step
@@ -434,9 +447,10 @@ def split_chirp(info, dfc, dff, plot=True):
     t_ch      = t[idx_start:idx_end]
     th_ch     = th[idx_start:idx_end]
     cl_ch     = cl[idx_start:idx_end]
+    cd_ch     = cd[idx_start:idx_end]
     t2_ch     = t2[idx_start:idx_end]
     info['ICH'] = [idx_start, idx_end]
-    ch = {'t':t_ch, 'cl': cl_ch, 'th':th_ch, 't2':t2_ch, 'I':[idx_start, idx_end]}
+    ch = {'t':t_ch, 'cl': cl_ch, 'cd':cd_ch, 'th':th_ch, 't2':t2_ch, 'I':np.arange(idx_start, idx_end)}
 
     t_all = np.concatenate([t_tr, t_st, t_ch])
 
@@ -454,16 +468,16 @@ def split_chirp(info, dfc, dff, plot=True):
         s, e = d['start_idx'], d['end_idx']
         if len(t_seg)!=e-s:
             raise Exception('Problem in dwell')
-        t_d, th_d, cl_d, t_ref_d = t[s:e], th[s:e], cl[s:e], t2[s:e]
+        t_d, th_d, cl_d, cd_d, t_ref_d = t[s:e], th[s:e], cl[s:e], cd[s:e], t2[s:e]
         t_all = np.concatenate((t_all, t_d))
         # Split into cycles accurately
         cycles = []
         for i, (s_rel, e_rel) in enumerate(cycle_bounds):
             c_s = s + s_rel
             c_e = s + e_rel
-            cycles.append({'t':t[c_s:c_e], 'th': th[c_s:c_e], 'cl': cl[c_s:c_e], 't2':t2[c_s:c_e], 'I':[c_s, c_e]})
+            cycles.append({'t':t[c_s:c_e], 'th': th[c_s:c_e], 'cl': cl[c_s:c_e], 'cd':cd[c_s:c_e], 't2':t2[c_s:c_e], 'I':np.arange(c_s, c_e)})
         d_loc = d.copy()
-        d_loc.update({'k': d['k'], 'cycles': cycles, 't':t_d, 'cl':cl_d, 'th':th_d, 't2':t_ref_d, 'I':[s,e]})
+        d_loc.update({'k': d['k'], 'cycles': cycles, 't':t_d, 'cl':cl_d, 'cd':cd_d, 'th':th_d, 't2':t_ref_d, 'I':np.arange(s,e)})
         dw.append(d_loc)
 
 
@@ -508,4 +522,4 @@ def split_chirp(info, dfc, dff, plot=True):
 
         ax.set_xlabel('Time [s]')
 #         ax.set_ylabel('')
-    return all, tr, st, ch, dw
+    return al, tr, st, ch, dw
