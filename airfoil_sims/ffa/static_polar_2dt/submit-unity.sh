@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=F0st3D24
-#SBATCH --time=2-00:00:00  # Job time limit Days-Hours:Minutes:Seconds
+#SBATCH --job-name=pol
+#SBATCH --time=0-08:00:00  # Job time limit Days-Hours:Minutes:Seconds
 #SBATCH --nodes=1
-#SBATCH --ntasks=128           # Number of MPI processes
-#SBATCH --mem=300G            # Memory
+#SBATCH --ntasks=64           # Number of MPI processes
+#SBATCH --mem=150G            # Memory
 #SBATCH -p cpu
 #SBATCH --exclude=cpu024  
 #-SBATCH --nodelist=cpu069,cpu070,cpu071,cpu072,cpu073,cpu074,cpu075,cpu076,cpu077,cpu078
@@ -23,7 +23,7 @@
 ENV=nalu-wind-shared
 ENV=nalu-wind-nomod
 nalu_exec=naluX
-nalu_input=input_AoA0_n24.yaml
+nalu_input=input.yaml
 EXAWIND_MANAGER=/work/pi_ebranlard_umass_edu/exawind-manager
 
 # ------------------- MODULES ----------------------------
@@ -74,13 +74,3 @@ echo "Done"
 echo "------------------------------------------------------------------------------"
 echo "------------------------------------------------------------------------------"
 echo "#>>> Ending job on:  $(date)"
-
-#--- Shreyas
-#srun -u -N4 -n384 --ntasks-per-node=96 --distribution=block:cyclic --cpu_bind=map_cpu:0,52,13,65,26,78,39,91,1,53,14,66,27,79,40,92,2,54,15,67,28,80,41,93,3,55,16,68,29,81,42,94,4,56,17,69,30,82,43,95,5,57,18,70,31,83,44,96,6,58,19,71,32,84,45,97,7,59,20,72,33,85,46,98,8,60,21,73,34,86,47,99,9,61,22,74,35,87,48,100,10,62,23,75,36,88,49,101,11,63,24,76,37,89,50,102,12,64,25,77,38,90,51,103 ${nalu_exec} -i $grids${list_of_cases[$idx]}/ffa_w3_211_static_${list_of_cases[$idx]}.yaml -o $grids${list_of_cases[$idx]}/log$idx.out &
-
-#srun -u -N6 -n312 --ntasks-per-node=52 --distribution=cyclic:cyclic --cpu_bind=cores ${nalu_exec} -i $grids${list_of_cases[$idx]}/*.yaml -o $grids${list_of_cases[$idx]}/log$idx.out &
-
-# Adjust the ratio of total MPI ranks for AMR-Wind and Nalu-Wind as needed by a job 
-# srun -N $SLURM_JOB_NUM_NODES -n $(($SLURM_NTASKS_PER_NODE * $SLURM_JOB_NUM_NODES)) \
-# --distribution=block:block --cpu_bind=rank_ldom exawind --awind $(($SLURM_NTASKS_PER_NODE * $SLURM_JOB_NUM_NODES) * 0.25) \
-# --nwind $(($SLURM_NTASKS_PER_NODE * $SLURM_JOB_NUM_NODES) * 0.75) <input-name>.yaml
