@@ -5,7 +5,7 @@ from nalulib.weio.csv_file import CSVFile
 db_stat = DataFrameDatabase(name='Misc')
 
 airfoil_name = 'du00-w-212'
-config={'airfoil':airfoil_name, 'Re':3, 'density':1.225, 'viscosity':1.392416666666667e-05}
+config={'airfoil':airfoil_name, 'Re':3, 'density':1.225, 'viscosity':1.392416666666667e-05} # NOTE: viscosity is mu
 df1=CSVFile('./du00-w-212/ref/cfd_re3M.csv').toDataFrame()
 df2=CSVFile('./du00-w-212/ref/cfd_re3M_turb.csv').toDataFrame()
 df3=CSVFile('./du00-w-212/ref/exp_re3M.csv').toDataFrame()
@@ -17,7 +17,7 @@ db_stat.insert_multiple(dfs=[df1, df2, df3], configs=configs)
 
 # --- 
 airfoil_name = 'nlf1-0416'
-config={'airfoil':airfoil_name, 'Re':4, 'density':1.225, 'viscosity':1.0443125000000002e-05}
+config={'airfoil':airfoil_name, 'Re':4, 'density':1.225, 'viscosity':1.0443125000000002e-05} # NOTE: viscosity is mu
 config['specific_dissipation_rate'] = 460.34999999999997
 config['turbulent_ke']              = 0.00392448375
 db_stat.insert(config|{'Setup':'CFD2D_ref_lam'},  CSVFile('./nlf1-0416/ref/cfd2d_rans.csv').toDataFrame())

@@ -4,8 +4,12 @@ import glob
 import numpy as np
 from scipy import signal
 from scipy.signal import chirp, butter, filtfilt
+from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import json
+from welib.weio.csv_file import CSVFile
+from welib.weio.fast_output_file import FASTOutputFile
+from welib.tools.pandalib import pd_interp1
 
 try:
     from welib.tools.colors import python_colors
@@ -18,7 +22,7 @@ def airfoil2configStat(airfoil_name, db, verbose=False):
     config['airfoil']                  = airfoil_name
     config['chord']                    = 1
     config['density']                  = 1.2
-    config['viscosity']                = 9.0e-06
+    config['viscosity']                = 9.0e-06 # This is mu, not nu
     config['specific_dissipation_rate']= 114.54981120000002
     config['turbulent_ke']             = 0.0013020495206400003
     config['dt_fact']                  = 0.02
@@ -107,7 +111,7 @@ def generate_step_chirp(dt, U, B1, alpha_mean_deg=2.0, alpha_amp_deg=1.0,
     # --- Physical Parameters ---
     fs = 1.0 / dt 
     t_conv = chord / U  # Convective time (1 chord)
-    s_factor = (2 * U) / chord   
+    s_factor = (2 * U) / chord    # Using semi chord
     
     # --- Frequency Calculations ---
     f_break_low = (B1 * U) / (np.pi * chord)       # [Hz]
@@ -483,6 +487,7 @@ def split_chirp(info, dfc, dff, plot=True):
 
     deltas = np.unique(np.around(np.diff(t_all),4))
     if any(deltas>np.min(deltas)*1.5):
+        import pdb; pdb.set_trace()
         print('>>> deltas', deltas)
         raise Exception('Problem in time coverage, gap found')
     if t_all[-1]!=t[-1]:
@@ -523,3 +528,161 @@ def split_chirp(info, dfc, dff, plot=True):
         ax.set_xlabel('Time [s]')
 #         ax.set_ylabel('')
     return al, tr, st, ch, dw
+
+
+
+# --------------------------------------------------------------------------------}
+# --- HELPER FUNCTIONS For STEP
+# --------------------------------------------------------------------------------{
+def wagner_model(s, A1, b1, A2, b2):
+    """ Jones approximation for the Wagner function """
+    return 1 - A1 * np.exp(-b1 * s) - A2 * np.exp(-b2 * s)
+
+def fit_wagner_step(s_step, phi_step, plot=False):
+    """
+    Fits the Wagner-like response: phi(s) = 1- A1*exp(-b1*s)-A2*exp(-b2*s))
+    Commonly used to extract indicial response constants for B-L models.
+    """
+    
+    # Standard Jones constants as initial guess [A1, b1, A2, b2]
+    p0 = [0.165, 0.045, 0.335, 0.30]
+    #bounds = ([0, 0, 0, 0], [1.0, 2.0, 1.0, 2.0])
+    bounds = ([0, 0, 0, 0.1], [1.0, 0.5, 1.0, 1.0])
+    popt, pcov = curve_fit(wagner_model, s_step, phi_step, p0=p0, bounds=bounds)
+    A1, b1, A2, b2 = popt
+    return popt
+
+def normalize_cl(s, cl, cl_before=None, cl_ss=None, ss_fract=0.01, clip_spike=True, s_min=0.9):
+    """ 
+    INPUTS:
+     - ss_fract: steady state fraction
+    """
+    if cl_before is None:
+        raise Exception('Not recommended')
+        cl_before = cl[0]
+
+    # Normalize cl by the steady state change to get the deficiency function
+    n     = len(cl)
+    if cl_ss is None:
+        n_ss  = max(int(n*ss_fract), 2)
+        cl_ss = np.mean(cl[-n_ss:])
+
+    phi = (cl-cl_before)/(cl_ss-cl_before)
+
+    s_step   = s.copy()
+    phi_step = phi.copy()
+    if clip_spike:
+        mask = (phi <= 1.05) & (phi >= 0.00) 
+        phi_step = phi_step[mask]
+        s_step   = s_step[mask]
+    if s_min>0:
+        mask = s_step>s_min
+        phi_step = phi_step[mask]
+        s_step   = s_step[mask]
+    return s_step, phi_step, phi
+
+def analyse_step_with_tStart(time, Cl, tStep=None, dCldt_lim=0.1, tStepEnd=None, s_factor=1, doFit=True, plot=True, fig=None, label='CFD', c='k', ls='-'):
+    """ 
+
+    """
+    mask = ~np.isnan(Cl)
+    time = time[mask]
+    Cl   = Cl[mask]
+
+
+    time = np.asarray(time)
+    Cl   = np.asarray(Cl)
+    if tStepEnd is None:
+        tStepEnd = time[-1]
+        iStepEnd = len(time)-1
+    else:
+        iStepEnd = np.argmin(np.abs(time-tStepEnd))-1
+
+    if tStep is not None:
+        iStepGuess = np.argmin(np.abs(time-tStep))
+        nMargin = 10
+        if iStepGuess>nMargin:
+            dCldt = np.gradient(Cl, time)
+            I = np.where(np.abs(dCldt[iStepGuess-nMargin:iStepGuess+nMargin])>dCldt_lim)[0]
+            if len(I)==0:
+                print('Problem gradient Cl')
+                plt.figure()
+                plt.plot(time[iStepGuess-nMargin:iStepGuess+nMargin], np.abs(dCldt[iStepGuess-nMargin:iStepGuess+nMargin]))
+                plt.show()
+            iStep0m = iStepGuess-nMargin + I[0] # 0-, just before the step
+            iStep0  = iStep0m+1                 # the step has started
+            Cl_before = np.mean(Cl[iStep0m-nMargin:iStep0])
+        else:
+            iStep0  = iStepGuess
+            Cl_before = Cl[0]
+    else:
+        Cl_before = 0
+
+    tStep = time[iStep0]
+
+    s       = (time-tStep)*s_factor
+    t_step  = time[iStep0:iStepEnd]
+    Cl_step = Cl  [iStep0:iStepEnd]
+    s_step =  s   [iStep0:iStepEnd]
+
+    n_ss  = max(int(len(s_step)*0.001), 2)
+    Cl_ss = np.mean(Cl_step[-n_ss:])
+    phi = (Cl-Cl_before)/(Cl_ss-Cl_before)
+
+    s_step0, phi_step0, _ = normalize_cl(s_step, Cl_step, cl_before=Cl_before, s_min=0.9, cl_ss=Cl_ss)
+
+    # --- Postpro
+    if doFit:
+        pwag = fit_wagner_step(s_step0, phi_step0)
+        A1, b1, A2, b2 = pwag
+        print(f"{label:15s}: A1={A1:6.3f}, b1={b1:6.3f} A2={A2:6.3f}, b2={b2:6.3f}")
+    else:
+#         print('Fit Skipped')
+        pwag = None
+
+    if plot:
+        ## Plot 1: Step Fit
+        if fig is None:
+            fig, ax = plt.subplots(1, 1, sharey=False, figsize=(6.4,4.8))
+            fig.subplots_adjust(left=0.12, right=0.95, top=0.95, bottom=0.11, hspace=0.20, wspace=0.20)
+        else:
+            ax = fig.axes[0]
+
+        ax.plot(s      , phi     , c=c, ls=':', alpha=0.2)
+        ax.plot(s_step0, phi_step0, c=c, ls=ls, alpha=0.6, label=label)
+        if pwag is not None:
+            s_pos = s[s>=0]
+            phi_wag = wagner_model(s_pos, *pwag)# A1, b1, A2, b2):
+            ax.plot(s_pos, phi_wag, '--', c='k')
+        ax.set_xlabel(r"Dimensionless time, $s$ [-]")
+        ax.legend()
+        ax.set_xlim([-1, 30])
+        ax.set_ylim([-0.1, 1.1])
+    else:
+        fig = None
+
+
+    return pwag, fig, (s_step0, phi_step0, s, phi)
+
+def analyse_step(df, info, fig=None, useCl=True, **kwargs):
+    if df is None:
+        return [], fig, (None,None, None,None)
+    tStep    =  info['indices_phases'][0]*info['dt']
+    tStepEnd = (info['indices_phases'][0]+info['indices_phases'][1]) * info['dt']
+    time = df['Time_[s]'].values
+    if useCl:
+        Cl   = df['Cl_[-]'].values
+    else:
+        Cl   = df['Cn_[-]'].values
+    return analyse_step_with_tStart(time, Cl, tStep=tStep, tStepEnd=tStepEnd, s_factor=info['s_factor'], fig=fig, **kwargs)
+
+
+def load_ULS(ulsfile, dfr):
+    if not os.path.exists(ulsfile):
+        return None
+    dfl = CSVFile(ulsfile).toDataFrame()
+    dfl['Time_[s]'] = dfl['Time']
+    dfl['Cl_[-]'] = dfl['Cl']
+    dfl['Cd_[-]'] = dfl['Cd']
+    dfl =  pd_interp1(dfr['Time_[s]'], 'Time_[s]', dfl, extrap='nan')
+    return dfl

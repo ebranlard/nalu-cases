@@ -18,7 +18,7 @@ def airfoil2config(airfoil_name, db, db_stat=None, db_stat2=None):
     config={}
     config['chord']                    = 1
     config['density']                  = 1.2
-    config['viscosity']                = 9.0e-06
+    config['viscosity']                = 9.0e-06 # This is mu
     config['specific_dissipation_rate']= 114.54981120000002
     config['turbulent_ke']             = 0.0013020495206400003
     config['dt_fact']                  = 0.02

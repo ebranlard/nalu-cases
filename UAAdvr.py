@@ -45,10 +45,15 @@ class TemplatedUAAdvr:
         self._aeroTS = None
         self._inflowTS = None
         self._motionTS = None
+        self._inflowTSFile = None
+        self._motionTSFile = None
+        self._dat_filename = None
+        self._dat_modifs={}
+        self._files_written=[]
 
         # ---
         self.set_template(dvr_template, dat)
-        self.copy_template()
+        self.new() # Copy template and initialize simulation fields to zero
 
     def set_template(self, dvr0, dat0=None):
         self._dvr0 = FASTInputFile(dvr0)
@@ -60,15 +65,15 @@ class TemplatedUAAdvr:
         self._dat0_filename = dat0 # template filename cannot be overwritten
 
     def new(self):
-        self.copy_template()
-
-    def copy_template(self):
-        """ Copy template to local data"""
+        # --- Copy template to local data"""
         self.dvr = self._dvr0.copy()
         self.dat = self._dat0.copy()
-        self._aeroTS = None
-        self._inflowTS = None
-        self._motionTS = None
+        # --- Initilize sim fields 
+        self._aeroTS     = None
+        self._inflowTS   = None
+        self._motionTS   = None
+        self._dat_modifs = {}
+        self._files_written=[]
 
     def __repr__(self):
         s = '<{} object> with attributes:\n'.format(type(self).__name__)
@@ -96,8 +101,16 @@ class TemplatedUAAdvr:
         return s
 
     def __setitem__(self, key, item):
+        #if key =='Airfoil':
+        #    self._dat_filename = item
+        #    self.dvr.__setitem__(key, item)
+
+        #elif key =='MotionTSFile':
+        #    self._motionTSFile = item
+        #    self.dvr.__setitem__(key, item)
+
         if key in self.dvr:
-            return self.dvr.__setitem__(key, item)
+            self.dvr.__setitem__(key, item)
         else:
             raise NotImplementedError()
 
@@ -126,8 +139,15 @@ class TemplatedUAAdvr:
 
     @property 
     def dat_filename(self):
-        if self.dvr_filename is not None:
-            return self.dvr_filename.replace('.dvr','_polar.dat') # TODO
+        if self._dat_filename is None:
+            if self.dvr_filename is not None:
+                return self.dvr_filename.replace('.dvr','_polar.dat') # TODO
+        else:
+            return self._dat_filename
+
+    @dat_filename.setter 
+    def dat_filename(self, value):
+         self._dat_filename = value
 
     @property 
     def aeroTSFile(self):
@@ -141,8 +161,16 @@ class TemplatedUAAdvr:
 
     @property 
     def motionTSFile(self):
-        if self.dvr_filename is not None:
-            return self.dvr_filename.replace('.dvr','_motionTS.csv')
+        if self._motionTSFile is None:
+            if self.dvr_filename is not None:
+                return self.dvr_filename.replace('.dvr','_motionTS.csv')
+        else:
+            return self._motionTSFile
+        
+    @motionTSFile.setter 
+    def motionTSFile(self, value):
+         self._motionTSFile = value
+
 
     # --------------------------------------------------------------------------------}
     # --- Properties DataFrames
@@ -235,7 +263,7 @@ class TemplatedUAAdvr:
         nu  = self['KinVisc']   # Kinematic viscosity of working fluid (m^2/s)
         simMod = self['SimMod']
         U = self.U_ref
-        re = rho * U * c / nu
+        re = U * c / nu
         return re
 
     @property 
@@ -266,7 +294,9 @@ class TemplatedUAAdvr:
         return U
 
 
-# 
+    # --------------------------------------------------------------------------------}
+    # --- POLAR 
+    # --------------------------------------------------------------------------------{
     def set_polar(self, data, Re=None):
         if isinstance(data, str):
             INFO('UAAdvr, setting polar from string')
@@ -286,6 +316,10 @@ class TemplatedUAAdvr:
         elif isinstance(data, FASTInputFile):
             INFO('UAAdvr, setting polar from FASTInputFile')
             import pdb; pdb.set_trace()
+
+    def update_polar(self, k, v):
+        self._dat_modifs[k] = v # in the future, we could apply them at the end
+        self.dat[k] = v
 
     # --------------------------------------------------------------------------------}
     # ---  
@@ -307,13 +341,14 @@ class TemplatedUAAdvr:
 
         base_dir = os.path.dirname(self.dvr_filename)
 
-        # Set auxiliary files
+        # --- Set auxiliary files iin dvr
         if self['SimMod'] == 1:
             pass
 
         elif self['SimMod'] == 2:
             if verbose:
                 print('Writing', self.aeroTSFile)
+            self._files_written.append(self.aeroTSFile)
             self.aeroTS.to_csv(self.aeroTSFile, index=False)
             self['AeroTSFile'] = '"'+os.path.relpath(self.aeroTSFile, base_dir)+'"'
 
@@ -321,25 +356,33 @@ class TemplatedUAAdvr:
             if self['InflowMod'] == 2:
                 if verbose:
                     print('Writing', self.inflowTSFile)
+                self._files_written.append(self.inflowTSFile)
                 self.inflowTS.to_csv(self.inflowTSFile, index=False)
                 self['InflowTSFile'] = '"'+os.path.relpath(self.inflowTSFile, base_dir)+'"'
 
             if self['MotionMod'] == 2:
                 if verbose:
                     print('Writing', self.motionTSFile)
+                self._files_written.append(self.motionTSFile)
                 self.motionTS.to_csv(self.motionTSFile, index=False)
                 self['MotionTSFile'] = '"'+os.path.relpath(self.motionTSFile, base_dir)+'"'
-        
+
+        # --- Other DVR triggers
+        self.dvr['AirFoil'] = '"'+os.path.relpath(self.dat_filename, base_dir)+'"'
+
+        # --- Set dat
+        self.dat['NumCoords'] = 0
+        for k, v in self._dat_modifs.items():
+            self.dat[k] = v
+        if np.all(np.isnan(self.dat['AFCoeff'][:,3])):
+            WARN('UAAdvr: Cm is NaN in polar, replacing it with 0')
+            self.dat['AFCoeff'][:,3] = 0
+
         if verbose:
             print('Writing', self.dat_filename)
             print('Writing', self.dvr_filename)
-
-        self.dvr['AirFoil'] = '"'+os.path.relpath(self.dat_filename, base_dir)+'"'
-        self.dat['NumCoords'] = 0
-        if np.all(np.isnan(self.dat['AFCoeff'][:,3])):
-            WARN('UAAdvr: Cm is NaN in polar, replacing it with 0')
-        self.dat['AFCoeff'][:,3] = 0
-
+        self._files_written.append(self.dat_filename)
+        self._files_written.append(self.dvr_filename)
         self.dat.write(self.dat_filename)
         self.dvr.write(self.dvr_filename)
 
@@ -356,6 +399,11 @@ class TemplatedUAAdvr:
             print(f"Running command: {command}")
         subprocess.run(command, check=True)
 
+
+    def delete_input_files(self):
+        for f in self._files_written:
+            if f!=self._dvr0_filename and f!=self._dat0_filename:
+                os.remove(f)
 
 
     # --------------------------------------------------------------------------------}

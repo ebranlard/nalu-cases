@@ -90,7 +90,7 @@ else:
 
 chord=1
 DENSITY= 1.2
-VISCOSITY = 9.0E-06
+VISCOSITY = 9.0E-06 # mu
 SPECIFIC_DISSIPATION_RATE= 114.54981120000002
 TURBULENT_KE= 0.0013020495206400003
 
@@ -149,7 +149,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
         os.makedirs(local_mesh_dir)
 
     # --- Scales
-    U = float(re*1e6 *viscosity /(density * chord ))
+    U = float(re*1e6 *viscosity /(density * chord )) # viscosity is mu
     dt = float(np.around(DT_FACT * chord / U, 8))
     T = chord/U*nT_steady
 
@@ -201,7 +201,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
     # Flow variables
     yml.velocity = [U, 0, 0]
     yml.density = density
-    yml.viscosity = viscosity
+    yml.viscosity = viscosity # this is mu
 
     yml.inflow_turbulent_ke               = turbulent_ke
     yml.outflow_turbulent_ke              = turbulent_ke
@@ -245,7 +245,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
         batch_file =None
 
     print('Saving yaml...')
-    info['viscosity'] = viscosity
+    info['viscosity'] = viscosity # this is mu
     info['density']   = density
     info['re']        = re
 
@@ -272,7 +272,7 @@ for ia, airfoil_name in enumerate(airfoil_names):
 
 
     density=DENSITY
-    viscosity=VISCOSITY
+    viscosity=VISCOSITY #mu
     specific_dissipation_rate= SPECIFIC_DISSIPATION_RATE
     turbulent_ke=TURBULENT_KE
 
@@ -285,14 +285,14 @@ for ia, airfoil_name in enumerate(airfoil_names):
             #mesh_file_2d = './du00-w-212/grids/du00w212_re3M_y03_aoa0_n1.exo'
             mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
             density=1.225
-            viscosity=1.392416666666667e-05
+            viscosity=1.392416666666667e-05 # mu
             #dt_fact=0.55
         elif airfoil_name == 'nlf1-0416':
             Reynolds=[4]; re=Reynolds[0]
             #mesh_file_2d = './nl1-0416/grids/nlf1-0416_re4M_y2_aoa0_n1.exo'
             mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
             density=1.225
-            viscosity=1.0443125000000002e-05
+            viscosity=1.0443125000000002e-05 # mu
             specific_dissipation_rate= 460.34999999999997
             turbulent_ke=0.00392448375
             #dt_fact=0.55

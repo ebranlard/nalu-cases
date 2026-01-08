@@ -1,109 +1,109 @@
+""" 
+
+Wagner: Response to an instantaneous change in pitch/angle of attack (the "Pitch Step"). 
+The lift starts at a value (circulatory part is $0.5$ of steady-state theoretically) and grows toward $1.0$.
+
+Küssner: Response to entering a sharp-edged gust (the "Transverse Gust"). The lift starts at $0$ and grows toward $1.0$.
+
+
+CFD spike at t=0 is the non-circulatory (added mass) lift
+
+Model       A1     b1    A2    b2      Sum A 
+Wagner    0.165  0.045 0.335  0.300    0.5  # Jones
+Küssner   0.500  0.130 0.500  1.000    1.0
+OpenFAST  0.3    0.14  0.7    0.52     1.0  # OpenFAST
+
+"""
 import numpy as np
 import os
-# import pandas as pd
-# import json
 import matplotlib.pyplot as plt
-# from scipy import signal
-from scipy.optimize import curve_fit
-
+from welib.essentials import *
+from welib.tools.pandalib import pd_interp1
+from welib.weio.csv_file import CSVFile
 from welib.weio.fast_output_file import FASTOutputFile
+from helper_functions import load_json_chirp
+from helper_functions import analyse_step_with_tStart
+from helper_functions import analyse_step, load_ULS
 
-from helper_functions import generate_step_chirp, load_json_chirp, plot_chirp_full_time
-from helper_functions import split_chirp
-from helper_functions import k2f, f2k
-
-# --------------------------------------------------------------------------------}
-# --- HELPER FUNCTIONS 
-# --------------------------------------------------------------------------------{
-def fit_wagner_step(s, cl_data, alpha_amp_rad, plot=False):
-    """
-    Fits the Wagner-like response: Cl(s) = Cl_final * (1 - A1*exp(-b1*s) - A2*exp(-b2*s))
-    Commonly used to extract indicial response constants for B-L models.
-    """
-    # Normalize cl by the steady state change to get the deficiency function
-    cl_steady = np.mean(cl_data[-100:])
-    
-    def wagner_model(s, A1, b1, A2, b2):
-        return cl_steady * (1 - A1*np.exp(-b1*s) - A2*np.exp(-b2*s))
-    
-    # Standard Jones constants as initial guess [A1, b1, A2, b2]
-    p0 = [0.165, 0.045, 0.335, 0.30]
-    try:
-        popt, _ = curve_fit(wagner_model, s, cl_data, p0=p0, maxfev=5000)
-        return popt
-    except:
-        print('[FAIL] fit')
-        return None
-
-def postpro_step(t, cl, info, plot=False):
-    # Detrend to remove DC offsets for better FFT results
-    #theta_ch = signal.detrend(theta_ch)
-    #cl_ch    = signal.detrend(cl_cl)
-    t=np.asarray(t)
-    cl=np.asarray(cl)
-    t = t.copy()-t[0]
-    s_factor = info['s_factor']
-    s_step   = t*s_factor
-    # --- Postpro
-    wagner_params = fit_wagner_step(t*s_factor, cl, np.radians(1.0)) # Example amp
-    print(wagner_params)
-    if plot:
-        ## Plot 1: Step Fit
-        plt.figure(figsize=(8, 4))
-        plt.plot(s_step, cl, 'k', alpha=0.3, label='CFD')
-        if wagner_params is not None:
-            plt.plot(s_step, cl[-1]*(1-wagner_params[0]*np.exp(-wagner_params[1]*s_step)-wagner_params[2]*np.exp(-wagner_params[3]*s_step)), 'r--', label='Fit')
-        plt.title("Step Response (Wagner Fit)")
-        plt.xlabel("s [dim. time]")
-        plt.legend()
 
 # --------------------------------------------------------------------------------}
 # --- MAIN SCRIPTS
 # --------------------------------------------------------------------------------{
 # --- Main inputs
-out_dir = '_results/_data_paper/splits/'
-
 cases=[]
-# cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':''    }]
+cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':''    }]
 cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HR' }]
-# cases+=[{'airfoil_name':'du00-w-212' , 'n':4  , 're':3   , 'suffix':''    }]
+cases+=[{'airfoil_name':'du00-w-212' , 'n':4  , 're':3   , 'suffix':''    }]
 cases+=[{'airfoil_name':'du00-w-212' , 'n':22 , 're':3   , 'suffix':''    }]
-# cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':''    }]
-# cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':''    }]
+cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':''    }]
+cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':''    }]
 cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'_HR' }]
+# 
 
+
+# --------------------------------------------------------------------------------}
+# ---  Helpers
+# --------------------------------------------------------------------------------{
 chord = 1
 span  = 4
 
-os.makedirs(out_dir, exist_ok=True)
+pWag = [0.165,  0.045, 0.335,  0.300 ] # Wagner / Jones   Pitch change
+pKus = [0.500,  0.13 , 0.500,  1.000 ] # Kussner          Transverse Gust
+pOF  = [0.3  ,  0.14 , 0.7  ,   0.53 ] # OpenFAST
 
+s_th = np.linspace(0, 100, 500)
+PhiKussner = 1 - pKus[0]*np.exp(-pKus[1] * s_th) - pKus[2]*np.exp(-pKus[3]*s_th) # Kussner~ with A1+A2=1
+PhiWagner  = 1 - pWag[0]*np.exp(-pWag[1] * s_th) - pWag[2]*np.exp(-pWag[3]*s_th) # Waggner
+PhiOF      = 1 - pOF [0]*np.exp(-pOF [1] * s_th) - pOF [2]*np.exp(-pOF [3]*s_th) # OpenFAST
+
+
+# --------------------------------------------------------------------------------}
+# ---  
+# --------------------------------------------------------------------------------{
+fig=None
 for cs in cases:
 # for cs in [cases[0]]:
     base = cs['airfoil_name'] + '_re{:05.2f}M'.format(cs['re']) + cs['suffix']
     print(f"------------------------- {base}------------- {cs['suffix']}")
-
-
     yml_path  = '_results/cases_chirp_n{}/{}/{}_re{:04.1f}_mean00_A01{:s}.yaml'.format(cs['n'], cs['airfoil_name'], cs['airfoil_name'], cs['re'], cs['suffix'])
     json_path = yml_path.replace('.yaml','.json')
     dvr_path  = yml_path.replace('.yaml', '_UAA.dvr')
     cfd_outb  = yml_path.replace('.yaml', '_CFD.outb')
-    uaa_outb  = yml_path.replace('.yaml', '_UAA.outb')
-
+    uls_outb  = yml_path.replace('.yaml', '_ULS_OmegaM.csv')
     # --- JSON Info
-    info, dfc    = load_json_chirp(json_path, verbose = False, plot = False)
+    info, dfm = load_json_chirp(json_path, verbose = False, plot = False)
 
-    # --- Read postprocessed CFD (see t41_chirp_ua)
-    dff = FASTOutputFile(cfd_outb).toDataFrame()
-    dfa = FASTOutputFile(uaa_outb).toDataFrame()
+    dfc = FASTOutputFile(cfd_outb).toDataFrame()
+    dfl = load_ULS(uls_outb, dfc)
 
-    # All, Transients, Step, Chirp, Dwells
-    al, tr, st, ch, dw = split_chirp(info, dfc, dff, plot=False)
+    p,fig, _ = analyse_step(dfc, info, plot=True, label='CFD', c=fColrs(1), fig=fig, doFit=False)
+    p,fig, _ = analyse_step(dfl, info, plot=True, label='ULS', c=fColrs(2), fig=fig, doFit=False)
 
-    postpro_step(st['t'][5:], st['cl'][5:], info, plot=True) # TODO TODO
 
-    al, tr, st, ch, dw = split_chirp(info, dfc, dfa, plot=False)
-    postpro_step(st['t'], st['cl'], info, plot=True) # TODO TODO
+    COLRSLB={'Wg':fColrs(3), 'Ks':fColrs(6), 'OF':fColrs(4)}
+    LS = ['-', '--', ':', '-.']
+#     fig=None
+    #for im, UAMod in enumerate([2, 3, 4, 5]):
+    for im, UAMod in enumerate([4, 2, 3]):
+#         for ip, (p,lab) in enumerate(zip([pWag, pKus, pOF] , ['Wg', 'Ks', 'OF'])):
+#         for ip, (p,lab) in enumerate(zip([pWag, pKus, pOF] , ['Wg', 'Ks', 'OF'])):
+        for ip, (p,lab) in enumerate(zip([pWag, pKus, pOF] , ['OF'])):
 
+            A1, b1, A2, b2 = p
+            print(f"{lab:15s}: A1={A1:6.3f}, b1={b1:6.3f} A2={A2:6.3f}, b2={b2:6.3f}")
+        #for ip, (p,lab) in enumerate(zip([pOF] , ['OF'])):
+            uaa_outb  = yml_path.replace('.yaml', '_UA{}_{}.outb'.format(UAMod, lab))
+
+            # --- Read postprocessed CFD (see t41_chirp_ua)
+            dfu = FASTOutputFile(uaa_outb).toDataFrame()
+            p,fig,_ = analyse_step(dfu, info, plot=True, label=f'UA{UAMod} {lab}', c=COLRSLB[lab], ls=LS[im], fig=fig, doFit=False, useCl=True)
+
+
+ax=fig.axes[0]
+ax.plot(s_th, PhiWagner , '-', label='(Wagner Function) ' , lw=2, c=fColrs(1))
+# ax.plot(s_th, PhiKussner, '-', label='(Kussner Function)' , lw=2, c=fColrs(2))
+# ax.plot(s_th, PhiOF     , '-', label='(OpenFAST Function)', lw=2, c=fColrs(3))
+ax.legend()
 
 plt.show()
 

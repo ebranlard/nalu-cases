@@ -156,7 +156,7 @@ def postpro_chirp_tf(ch, dw, info, st=None, plot=False):
     k_bl = f2k(f_bl, U, chord)
 
     # --- Theory
-    H_th, H_circ, H_nc = get_analytical_tf(f_ch, U=U, Cl_alpha=Cl_alpha, A1=A1, A2=A2, B1=B1, B2=B2, MACH=0.0, chord=chord)
+    H_th, H_circ, H_nc = get_analytical_tf(f_ch, U=U, Cl_alpha=Cl_alpha, A1=A1, A2=A2, b1=B1, b2=B2, chord=chord)
     mag_th = np.abs(H_th)
     phi_th = np.angle(H_th, deg=True)
 

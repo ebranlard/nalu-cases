@@ -51,29 +51,54 @@ def compute_bl_response(t, alpha, U=1, Cl_alpha=1, A1=0.165, A2 = 0.335, B1= 0.0
     return cl_out
 
 
-def get_analytical_tf(freqs, U=1, Cl_alpha=1, A1=0.165, A2 = 0.335, B1= 0.0455, B2=0.3, MACH=0.0, chord=1):
+def get_analytical_tf(freqs, U=1, Cl_alpha=1, A1=0.165, A2 = 0.335, b1= 0.0455, b2=0.3, chord=1):
+    """ 
+        Tu: time constant [s], defined as chord / (2 * U)
 
-    BETA_SQ = 1 - MACH**2
-    TI = chord / 343.0 
+    NOTE: k_red =  omega/ Tu
+
+    """
+
+    omegas = 2 * np.pi * freqs
+    s     = 1j * omegas
+    Tu    = chord / (2*U)
 
     # Non-dimensional Laplace variable
     # s = j * k, where k is reduced frequency (omega*c / 2V)
-    omega_red = (2 * np.pi * freqs) * (chord / (2 * U))
-    s = 1j * omega_red
+    omega_red = omegas * (chord / (2 * U))
+    s_red = 1j * omega_red
     
     # Rate-based deficiency terms
     # beta_sq is usually 1.0 for low speed
-    term1 = (A1 * s) / (s + B1 * BETA_SQ)
-    term2 = (A2 * s) / (s + B2 * BETA_SQ)
+    term1 = (A1 * s_red) / (s_red + b1)
+    term2 = (A2 * s_red) / (s_red + b2)
     
     # Total Circulatory TF
-    #H_circ = C_L_ALPHA * (1 - (A1 * B1) / (s + B1) - (A2 * B2) / (s + B2)) # OLD , state driven by alpha
-    H_circ = Cl_alpha * (1 - term1 - term2) # State driven by Delta alpha
+    #H_circ = Cl_alpha * (1 - (A1 * b1) / (s_red + b1) - (A2 * b2) / (s_red + b2)) # OLD , state driven by alpha
+    #H_circ = Cl_alpha * (1 - term1 - term2) # State driven by Delta alpha
+    H_circ = Cl_alpha * ((1 - A1 - A2) + (b1 * A1) / (s * Tu + b1) + (b2 * A2) / (s * Tu + b2))
 
+    # Non-circulatory part: accounts for the pitch rate (added mass / damping) term
     # Non-circulatory part (High frequency addition)
     # Proportional to i*omega (derivative)
-    H_nc = (4 * TI * U / chord) * (1j * 2 * np.pi * freqs)
-    
-    return H_circ + H_nc, H_circ, H_nc
+    #H_nc = (4 * TI * U / chord) * (1j * omegas)
+    H_nc = np.pi * Tu * s 
 
+    H = H_circ + H_nc
 
+    out=dict()
+    out['f']        = freqs
+    out['H']        = H
+    out['mag']      = np.abs  (H)
+    out['phi']      = np.angle(H,deg = True)
+    out['H_circ']   = H_circ
+    out['mag_circ'] = np.abs  (H_circ)
+    out['phi_circ'] = np.angle(H_circ,deg = True)
+    out['H_nc']     = H_nc
+    out['mag_nc']   = np.abs  (H_nc)
+    out['phi_nc']   = np.angle(H_nc,deg = True)
+    out['p']        = [A1, b1, A2, b2]
+    return out
+
+#     
+#     return H_circ + H_non_circ

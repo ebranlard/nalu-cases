@@ -110,7 +110,7 @@ for nSpan in [4, 24, 121]:
 
 
             # --- Scales
-            U = float(re*1e6 *config['viscosity'] /(config['density'] * config['chord'] ))
+            U = float(re*1e6 *config['viscosity'] /(config['density'] * config['chord'] )) # Viscosity is mu not mu
             dt = float(np.around(config['dt_fact'] * config['chord'] / U, 8))
             T = config['chord']/U*nT_steady
 
@@ -136,7 +136,7 @@ for nSpan in [4, 24, 121]:
             # --- Flow variables
             yml.velocity = [U, 0, 0]
             yml.density = config['density']
-            yml.viscosity = config['viscosity']
+            yml.viscosity = config['viscosity'] # This is mu
 
             yml.inflow_turbulent_ke               = config['turbulent_ke']
             yml.outflow_turbulent_ke              = config['turbulent_ke']

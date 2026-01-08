@@ -84,7 +84,7 @@ for ia, airfoil_name in enumerate(airfoil_names):
         if not os.path.exists(sim_dir):
             os.makedirs(sim_dir)
         # --- Scales
-        U = float(re*1e6 *config['viscosity'] /(config['density'] * config['chord'] ))
+        U = float(re*1e6 *config['viscosity'] /(config['density'] * config['chord'] )) # NOTE: viscosity is mu
         dt = float(np.around(config['dt_fact'] * config['chord'] / U, 8))
         T = config['chord']/U*nT_steady
 
@@ -106,7 +106,7 @@ for ia, airfoil_name in enumerate(airfoil_names):
         # --- Flow variables
         yml.velocity = [U, 0, 0]
         yml.density = config['density']
-        yml.viscosity = config['viscosity']
+        yml.viscosity = config['viscosity'] # This is mu, not nu
 
         yml.inflow_turbulent_ke               = config['turbulent_ke']
         yml.outflow_turbulent_ke              = config['turbulent_ke']

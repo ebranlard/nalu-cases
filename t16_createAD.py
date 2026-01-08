@@ -28,7 +28,7 @@ for f in files:
     ADfilename = os.path.join(ADDir, basename.replace('.csv' ,'.dat'))
     pol = Polar(filename=f)
     if np.all(np.isnan(pol.cm)):
-        WARN('Cm is Nan, replacing with 0')
+        #WARN('Cm is Nan, replacing with 0')
         pol.cm[:] = 0
     Re = float(re.search(r"re([0-9.]+)", basename).group(1))
     if 'exp' in basename.lower():
@@ -44,3 +44,28 @@ for f in files:
     comment += f'\nSource File: {basename}'
 
     pol.toAeroDyn(ADfilename, comment=comment, Re=Re)
+    if 'cfd' in basename.lower()  and '_n' in basename.lower():
+        iLow  = np.argmin(np.abs(pol.alpha+3.0))
+        iHigh = np.argmin(np.abs(pol.alpha-8.0))
+        alpha = pol.alpha
+        cl = pol.cl
+        if cl[iLow]>0 and iLow>0:
+            iLow=iLow-1
+        cd = pol.cd
+        cm = pol.cm
+        a0, a1 = pol.alpha[iLow], pol.alpha[iHigh]
+        alpha_lin = np.arange(a0, a1 + 1e-12, 0.5)
+        cl_lin = np.interp(alpha_lin, [a0, a1], [pol.cl[iLow], pol.cl[iHigh]])
+        cd_lin = np.interp(alpha_lin, pol.alpha, pol.cd)
+        cm_lin = np.interp(alpha_lin, pol.alpha, pol.cm)
+
+        # concatenate full polars
+        alpha_new = np.concatenate([ pol.alpha[:iLow], alpha_lin, pol.alpha[iHigh+1:], ])
+        cl_new   = np.concatenate([ pol.cl[:iLow], cl_lin, pol.cl[iHigh+1:], ])
+        cd_new   = np.concatenate([ pol.cd[:iLow], cd_lin, pol.cd[iHigh+1:], ])
+        cm_new   = np.concatenate([ pol.cm[:iLow], cm_lin, pol.cm[iHigh+1:], ])
+
+        pol2 = Polar(cl=cl_new, cd=cd_new, cm=cm_new, alpha=alpha_new, Re=Re)
+        comment  += f'\nMaking Cl linear by focusing on values at alpha= {a0} {a1}'
+        pol2.toAeroDyn(ADfilename.replace('.dat', '_extraLin.dat'), comment=comment, Re=Re)
+
