@@ -5,8 +5,8 @@ from welib.weio.fast_output_file import FASTOutputFile
 from welib.weio.csv_file import CSVFile
 
 pWag = [0.165,  0.045, 0.335,  0.300 ] # Wagner / Jones   Pitch change
-# pKus = [0.500,  0.13 , 0.500,  1.000 ] # Kussner          Transverse Gust
-# pOF  = [0.3  ,  0.14 , 0.7  ,   0.53 ] # OpenFAST
+pKus = [0.500,  0.13 , 0.500,  1.000 ] # Kussner          Transverse Gust
+pOF  = [0.3  ,  0.14 , 0.7  ,   0.53 ] # OpenFAST
 
 # --- Numerical Inputs ---
 Cl_alpha = 6.48300;

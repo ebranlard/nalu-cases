@@ -10,6 +10,12 @@ import json
 from welib.weio.csv_file import CSVFile
 from welib.weio.fast_output_file import FASTOutputFile
 from welib.tools.pandalib import pd_interp1
+from welib.tools.colors import fColrs
+
+from system_dynamics import tf_from_step, tfestimate, tfestimate_stitched
+from system_dynamics import cycle_mag_phase_fit, tf_from_cycle
+from ua import get_analytical_tf, compute_bl_response
+
 
 try:
     from welib.tools.colors import python_colors
@@ -273,7 +279,6 @@ def generate_step_chirp(dt, U, B1, alpha_mean_deg=2.0, alpha_amp_deg=1.0,
             # Label the k-value on the plot
             t_mid = t_total[d['start_idx']] + (d['duration_s'] / 2)
             ax1.text(t_mid, alpha_mean_deg-i/5, f"k={d['k']}", ha='center', va='bottom', fontsize=9, bbox=dict(facecolor='white', alpha=0.6))
-
 
         plt.title(f"CFD Input: U={U:.1f}m/s, k_target={k_target}")
 
@@ -686,3 +691,171 @@ def load_ULS(ulsfile, dfr):
     dfl['Cd_[-]'] = dfl['Cd']
     dfl =  pd_interp1(dfr['Time_[s]'], 'Time_[s]', dfl, extrap='nan')
     return dfl
+
+
+
+# --------------------------------------------------------------------------------}
+# --- HELPER FUNCTIONS Chirp
+# --------------------------------------------------------------------------------{
+def plotmelog(ax, x, y, info, ref=None, **kwargs):
+    if ref is None:
+        ref = y[1]
+    if 'label' in kwargs.keys():
+        print('Value at 0: ', kwargs['label'], ref, y[1], 20*np.log10(y[1]/ref), 'k=', x[0])
+    if info['log']:
+        if info['scale0']:
+            ax.plot(x, 20*np.log10(y/ref), **kwargs)
+        else:
+            ax.plot(x, 20*np.log10(y), **kwargs)
+    else:
+        ax.plot(x, y, **kwargs)
+def postpro_cycles_tf(dw, info, plot=False, A=1, verbose=False):
+    chord, U = info['chord'], info['U']
+    # Storage for processed results
+    dw_tf = []
+    for dwi in dw:
+        k = dwi['k']
+        if verbose:
+            print('---------- k ', k)
+        f_target = k2f(k, U, chord)
+        
+        cycle_stats = []
+        mags = []
+        phis = []
+        for i, cyc in enumerate(dwi['cycles']):
+            # Analyze Input (Theta)
+            t, u, y = cyc['t'], -cyc['th'], cyc['cl'] # NOTE: alpha = -theta
+            if len(y)!=len(u):
+                print(f'[WARN] Cycle incomplete / incoherent nt={len(t)} nu={len(u)} ny={len(y)}')
+                continue
+            mag, phi, dd =  tf_from_cycle(t, u, y, f_target, plot=plot, sine=False)
+
+            if verbose:
+                print('Input: A', dd['A_u'], 'phi',np.degrees(dd['phi_u']))
+            if np.abs(dd['A_u']-np.radians(A))>1e-4:
+                raise Exception('Error input fit magnitude')
+            if np.abs(dd['phi_u'])>np.radians(3) and np.abs(dd['phi_u'])<np.radians(176):
+                raise Exception('Error input fit phase', dd['phi_u'], np.radians(1))
+
+            mags.append(mag)
+            phis.append(phi)
+
+        dw_tf.append({'k': k, 'f': f_target, 'mag':mags, 'phi_deg':np.degrees(phis)})
+    return dw_tf
+
+def postpro_chirp_tf(ch, dw, info, st=None, plot=False, label='CFD', fig=None, ls='-', c=fColrs(1), lw=1.5, marker=None ):
+    # Detrend to remove DC offsets for better FFT results
+    #theta_ch = signal.detrend(theta_ch)
+    #cl_ch    = signal.detrend(cl_cl)
+    #print(wagner_params)
+    chord, U = info['chord'], info['U']
+    sgn=1
+    if not info['flip']:
+        sgn=-1
+    if st is not None:
+        t_st, cl_st = st['t'], st['cl']
+        A = np.radians(info['alpha_amp_deg'])
+        f_st, mag_st, phi_st = tf_from_step(t_st, cl_st, A)
+        # Reduced frequency
+        # k = omega * c / (2 * U) -> Note: some use c, some use c/2 (semi-chord)
+        k_st = (2 * np.pi * f_st * chord) / (2*U)
+    # --- Chirp
+    t_ch, cl_ch, th_ch = ch['t'], ch['cl'], ch['th'] # NOTE: th in radians
+    al_ch = -th_ch
+    th_deg = np.degrees(th_ch)
+    #print('>>> Min Max Angle Chirp:', np.min(th_deg), np.max(th_deg))
+    print('Alpha op :',  np.mean(al_ch), 0)
+    print('Cl    op :',  np.mean(cl_ch), -info['Cl_alpha']*np.radians(info['alpha0']))
+    al_ch = al_ch - np.mean(al_ch)
+    cl_ch = cl_ch - np.mean(cl_ch)
+    dt = (t_ch[-1] - t_ch[0]) / (len(t_ch) - 1)
+    fs = 1/dt
+    # tfestimate equivalent using CSD and Pwelch
+    n_pad_factor=1
+    f_ch, H_ch, Cxy = tfestimate(al_ch, cl_ch, fs, nperseg=None, returnCoh=True, n_pad_factor=n_pad_factor, verbose=False)
+    #f_ch, H_ch, _, _, _, _ = tfestimate_stitched(al_ch, cl_ch, fs=fs, f_stitch=0.1*info['f1'], returnAll=True)
+    mag_ch = np.abs(H_ch)
+    phi_ch = np.angle(H_ch, deg=True)
+    k_ch = f2k(f_ch, U, chord) # k = omega * c / (2 * U) -> Note: some use c, some use c/2 (semi-chord)
+    print(f'Mag   DC: {mag_ch[0]:6.3f} Cla={info["Cl_alpha"]:6.3f}   at: f={f_ch[0]:6.3f} Hz - k ={k_ch[0]:6.3f}')
+    if dw is not None:
+        dw_h = postpro_cycles_tf(dw, info, plot=False)
+    out=dict()
+    out['f']   = f_ch
+    out['k']   = k_ch
+    out['H']   = mag_ch
+    out['H_rel'] = mag_ch/mag_ch[1]
+    out['H_ref'] = mag_ch[1]
+    out['phi'] = phi_ch
+    out['k0'] =  f2k(info['f0'], U, chord)
+    out['k1'] =  f2k(info['f1'], U, chord)
+    if dw is not None:
+        for ii, dwi in enumerate(dw_h):
+            dwi['k_vec'] = [dwi['k']]*(len(dwi['mag'])-1)
+            dwi['H_rel'] = dwi['mag'][1:]/mag_ch[1]
+            dwi['phi']   = dwi['phi_deg'][1:]
+    out['dw_h'] = dw_h
+
+    if plot:
+        # Plot 2: Bode Plot
+        mask=k_ch<out['k1']*3
+        if fig is None:
+            fig, axes = plt.subplots(2, 1, sharex=True, figsize=(6.4,4.8))
+            fig.subplots_adjust(left=0.12, right=0.95, top=0.95, bottom=0.11, hspace=0.20, wspace=0.20)
+
+        else:
+            axes = fig.axes
+        ax1 = axes[0]
+        ax2 = axes[1]
+        # --- Magnitude
+        plotmelog(ax1, k_ch[mask], mag_ch[mask], info, ref=mag_ch[1], ls=ls, lw=lw, c=c, label = label, marker=marker)
+        ax2.plot(k_ch[mask], phi_ch[mask]                         , ls=ls, lw=lw, c=c, label = label, marker=marker)
+        ax1.set_ylabel("Gain [dB]")
+        # --- Phase
+        ax1.legend()
+        ax2.set_ylabel("Phase [deg]")
+        ax2.set_xlabel(r"Reduced Frequency $k$ [-]")
+
+        if dw is not None:
+            for ii, dwi in enumerate(dw_h):
+                n = len(dwi['mag'])-1
+                plotmelog(ax1, [dwi['k']]*n, dwi['mag'][1:], info, ref=mag_ch[1], marker='.', c=c) 
+                phi =  dwi['phi_deg']
+                ax2.plot([dwi['k']]*n, phi[1:], '.', c=c)
+        # Transfer function from step
+#         if st is not None:
+#             ax1.semilogx(k_st, 20 * np.log10(mag_st), label='From step')
+#             ax2.semilogx(k_st, phi_st)
+        ax1.set_xscale('log')
+        if info['scale0']:
+            ax1.set_ylim([-10, 5])
+        else:
+            pass
+        ax1.set_xlim(0.05, 1.5)
+        ax2.set_xlim(0.05, 1.5)
+    return fig, out
+
+
+def postpro_cycles_loops(dw, info):
+
+    ## Plot 3: Hysteresis (Last cycle only for clarity)
+    plt.figure(figsize=(6, 6))
+
+    COLRS = python_colors()
+    STY=[':','-.','--','-','-',':']
+
+
+    for i,d in enumerate(dw):
+        for j,c in enumerate(d['cycles']):
+            try:
+                plt.plot(np.degrees(-c['th']), c['cl'], label=f"k={d['k']} cycle {i+1}", c=COLRS[i], ls=STY[j])
+            except:
+                pass
+
+    plt.xlabel("Alpha [deg]")
+    plt.ylabel("Cl [-]")
+    plt.title("Hysteresis Loops (Stabilized)")
+    plt.legend()
+
+
+

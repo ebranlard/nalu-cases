@@ -83,7 +83,7 @@ def plotDatAgg(ax, dat, label=None, color='k', lw=1.5, ls='-', alpha=0.3):
     phimin   = dat['phi'].min(axis  = 0)
     phimax   = dat['phi'].max(axis  = 0)
     phimean  = dat['phi'].mean(axis = 0)
-    ax.fill_between(s, phimin, phimax, alpha=0.1, color=color)
+    ax.fill_between(s, phimin, phimax, alpha=0.25, color=color)
     phimin   = dat['phi_step'].min(axis  = 0)
     phimax   = dat['phi_step'].max(axis  = 0)
     phimean  = dat['phi_step'].mean(axis = 0)
@@ -146,6 +146,8 @@ if 0 in IPlot:
     plotDatAgg(ax, datUA[3], label='UA3', color=fColrs(3), ls='--')
     plotDatAgg(ax, datUA[5], label='UA5', color=fColrs(4), ls='--', lw=2)
     plotDatAgg(ax, datULS, label='ULS', color=(0.3,0.3,0.3), lw=2.5, ls=':')
+#     ax.axvline(1  , ls =':', c='k')
+#     ax.axhline(0.5, ls =':', c='k')
 
     ax.set_ylabel(r"Normalized lift $\phi(s)$ [-]")
     ax.set_xlabel(r"Dimensionless time, $s=2 U t / c$ [-]")

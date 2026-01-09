@@ -28,7 +28,7 @@ deleteInputs = True
 # NOTE: see notes above
 UAMods= [0, 2, 3, 4, 5, 6, 7]
 # UAMods= [0, 2, 3, 4, 5]  # If wanting more
-UAMods= [2, 3, 5] # Really all that is needed for the paper
+UAMods= [0, 2, 3, 5] # Really all that is needed for the paper
 
 cases=[]
 cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':''    }]
@@ -175,6 +175,10 @@ for cs in cases:
             dvr.update_polar('b1', p[1])
             dvr.update_polar('A2', p[2])
             dvr.update_polar('b2', p[3])
+
+            if UAMod==0:
+                dvr['SumPrint']    = True
+                dvr['WrAFITables'] = True
 
             dvr.setPrescribedPitchMotion(t=dfc['Time_[s]'], theta = dfc['angle_[deg]']*np.pi/180, dt=info['dt'])
 

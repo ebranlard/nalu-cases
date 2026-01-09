@@ -62,6 +62,8 @@ def get_analytical_tf(freqs, U=1, Cl_alpha=1, A1=0.165, A2 = 0.335, b1= 0.0455, 
     omegas = 2 * np.pi * freqs
     s     = 1j * omegas
     Tu    = chord / (2*U)
+    k =  (np.pi * freqs * chord) / U  # [-]
+    print('Tu', Tu)
 
     # Non-dimensional Laplace variable
     # s = j * k, where k is reduced frequency (omega*c / 2V)
@@ -88,6 +90,10 @@ def get_analytical_tf(freqs, U=1, Cl_alpha=1, A1=0.165, A2 = 0.335, b1= 0.0455, 
 
     out=dict()
     out['f']        = freqs
+    out['k']        = k
+    out['f_hmin']   = freqs[np.argmin(np.abs(H))]
+    out['k_hmin']   = k    [np.argmin(np.abs(H))]
+    print('k_hmin', out['k_hmin'], np.sqrt(((Cl_alpha *A2 * b2**2)/np.pi)**(1/3)-b2**2), np.sqrt((Cl_alpha *A2 * b2)/np.pi) )
     out['H']        = H
     out['mag']      = np.abs  (H)
     out['phi']      = np.angle(H,deg = True)
@@ -98,6 +104,9 @@ def get_analytical_tf(freqs, U=1, Cl_alpha=1, A1=0.165, A2 = 0.335, b1= 0.0455, 
     out['mag_nc']   = np.abs  (H_nc)
     out['phi_nc']   = np.angle(H_nc,deg = True)
     out['p']        = [A1, b1, A2, b2]
+    out['Tu']       = Tu
+    out['U']        = U
+    out['chord']    = chord
     return out
 
 #     

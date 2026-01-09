@@ -60,12 +60,18 @@ for f in files:
         cm_lin = np.interp(alpha_lin, pol.alpha, pol.cm)
 
         # concatenate full polars
-        alpha_new = np.concatenate([ pol.alpha[:iLow], alpha_lin, pol.alpha[iHigh+1:], ])
-        cl_new   = np.concatenate([ pol.cl[:iLow], cl_lin, pol.cl[iHigh+1:], ])
-        cd_new   = np.concatenate([ pol.cd[:iLow], cd_lin, pol.cd[iHigh+1:], ])
-        cm_new   = np.concatenate([ pol.cm[:iLow], cm_lin, pol.cm[iHigh+1:], ])
+        alpha_new = np.concatenate([[-180], pol.alpha[:iLow], alpha_lin, pol.alpha[iHigh+1:], [180]])
+        cl_new   = np.concatenate ([[ -0.0001], pol.cl[:iLow], cl_lin, pol.cl[iHigh+1:]     , [  0.0001]])
+        cd_new   = np.concatenate ([[ -0.0001], pol.cd[:iLow], cd_lin, pol.cd[iHigh+1:]     , [  0.0001]])
+        cm_new   = np.concatenate ([[ -0.0001], pol.cm[:iLow], cm_lin, pol.cm[iHigh+1:]     , [  0.0001]])
 
+#         try:
         pol2 = Polar(cl=cl_new, cd=cd_new, cm=cm_new, alpha=alpha_new, Re=Re)
-        comment  += f'\nMaking Cl linear by focusing on values at alpha= {a0} {a1}'
         pol2.toAeroDyn(ADfilename.replace('.dat', '_extraLin.dat'), comment=comment, Re=Re)
+        comment  += f'\nMaking Cl linear by focusing on values at alpha= {a0} {a1}'
+#         except:
+#             import pdb; pdb.set_trace()
+#         comment  += f'\nMaking Cl linear by focusing on values at alpha= {a0} {a1} - Full polar extrapolation'
+#         pol3.toAeroDyn(ADfilename.replace('.dat', '_extraLin_full.dat'), comment=comment, Re=Re)
+
 

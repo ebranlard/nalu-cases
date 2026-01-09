@@ -21,13 +21,13 @@ if __name__ == "__main__":
     nt = len(dfMotion)
     print(nt)
 
-    simName = 'S809_re00.8_mean00_A01_ULS_OmegaM'
-    with Timer():
-        main(nChord=5, nSpan=3, nStep=nt, chord=1, span=12.0, U0=U0, rho=rho, alpha=alpha, dfMotion=dfMotion, outputDir=outputDir, simName=simName, motionType='body', omega_fact=-1)
-
-    simName = 'S809_re00.8_mean00_A01_ULS_Omega0'
-    with Timer():
-        main(nChord=5, nSpan=3, nStep=nt, chord=1, span=12.0, U0=U0, rho=rho, alpha=alpha, dfMotion=dfMotion, outputDir=outputDir, simName=simName, motionType='body', omega_fact=0)
+#     simName = 'S809_re00.8_mean00_A01_ULS_OmegaM'
+#     with Timer():
+#         main(nChord=5, nSpan=3, nStep=nt, chord=1, span=12.0, U0=U0, rho=rho, alpha=alpha, dfMotion=dfMotion, outputDir=outputDir, simName=simName, motionType='body', omega_fact=-1)
+# 
+#     simName = 'S809_re00.8_mean00_A01_ULS_Omega0'
+#     with Timer():
+#         main(nChord=5, nSpan=3, nStep=nt, chord=1, span=12.0, U0=U0, rho=rho, alpha=alpha, dfMotion=dfMotion, outputDir=outputDir, simName=simName, motionType='body', omega_fact=0)
 
     simName = 'S809_re00.8_mean00_A01_ULS_OmegaP'
     with Timer():

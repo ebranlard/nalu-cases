@@ -9,7 +9,7 @@ from welib.essentials import *
 from welib.tools.figure import setFigureTitle
 
 setFigurePath('../nalu_torque_2026/figs/')
-setFigureFont(12)
+setFigureFont(14)
 setFigureTitle(1)
 export=False
 export=True
@@ -17,24 +17,24 @@ export=True
 
 def plot_polars(airfoil_name, Re):
     fig,axes = plt.subplots(1, 2, sharey=True, figsize=(4.8,3.0))
-    fig.subplots_adjust(left=0.16, right=0.99, top=0.92, bottom=0.17, hspace=0.20, wspace=0.08)
+    fig.subplots_adjust(left=0.10, right=0.99, top=0.92, bottom=0.17, hspace=0.20, wspace=0.08)
     plot_polar_df(axes, dfe, marker='o', label='Exp'     , c='k', ls='' , ms=3)
     plot_polar_df(axes, df1, marker='' , label='CFD 2D'  , c='k', ls='-', lw=1.6)
-    plot_polar_df(axes, df2, marker='' , label='CFD 3D n=4'        , c=fColrs(4), ls=':' , lw=1)
+    plot_polar_df(axes, df2, marker='' , label='CFD n=4'        , c=fColrs(4), ls=':' , lw=1)
     plot_polar_df(axes, df3, marker='' , label='CFD n=24'   , c=fColrs(2), ls='--', lw=1.2)
     plot_polar_df(axes, df4, marker='' , label='CFD n=121'  , c=fColrs(1), ls='-' , lw=1.5)
 
-    axes[0].set_xlabel('Angle of Attack (deg)')
+    axes[0].set_xlabel(r'$\alpha$ [deg]')
     axes[0].set_ylabel('Coefficient [-]')
-    axes[1].set_xlabel('Cd [-]')
-    axes[1].legend(fontsize=9, loc='lower right')
+    axes[1].set_xlabel(r'$C_d$ [-]')
+    axes[1].legend(fontsize=10, loc='lower right')
     axes[0].grid(True, ls=':', alpha=0.5)
     axes[1].grid(True, ls=':', alpha=0.5)
     ymin, ymax = axes[0].get_ylim()
-    axes[0].set_xlim([-5, 25])
+    axes[0].set_xlim([-5, 22])
     axes[0].set_ylim([-0.5, 2.35])
-    axes[1].set_xlim([-0.01, 0.15])
-    fig.suptitle(airfoil_name + ' - Re = {}M'.format(Re))
+    axes[1].set_xlim([-0.01, 0.12])
+    fig.suptitle(airfoil_name.upper() + ' - Re = {}M'.format(Re), fontsize=13)
     for ax in axes:
         ax.tick_params(direction='in', top=True, right=True, labelright=False, labeltop=False, which='both')
 
@@ -65,7 +65,7 @@ for airfoil_name in airfoil_names:
 
     elif airfoil_name =='S809':
         Re=0.75
-        dfe = standardize_polar_df(weio.read('_results/_polars/S809_re00.80M_Exp_Clean.csv').toDataFrame())
+        dfe = standardize_polar_df(weio.read('_results/_polars/S809_re00.80M_Exp.csv').toDataFrame())
         df1 = standardize_polar_df(weio.read('_results/_polars/S809_re00.80M_CFD2D.csv').toDataFrame())
         df2 = standardize_polar_df(weio.read('_results/_polars/S809_re00.80M_CFD3D_n4.csv').toDataFrame())
         df3 = standardize_polar_df(weio.read('_results/_polars/S809_re00.80M_CFD3D_n24.csv').toDataFrame())
