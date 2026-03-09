@@ -20,13 +20,17 @@ from ua import get_analytical_tf
 # --------------------------------------------------------------------------------{
 # --- Main inputs
 cases=[]
-cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':''    , 'Cl_alpha':6.50842, 'alpha0':  -1.00410 }]
-# cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HR' , 'Cl_alpha':6.50842, 'alpha0':  -1.00410  }]
-# # cases+=[{'airfoil_name':'du00-w-212' , 'n':4  , 're':3   , 'suffix':'' , 'Cl_alpha':6.71256,  'alpha0':-3.93070}]
-cases+=[{'airfoil_name':'du00-w-212' , 'n':22 , 're':3   , 'suffix':'' , 'Cl_alpha':6.71256,  'alpha0':-2.35240}]
-cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':'' , 'Cl_alpha':6.85040,  'alpha0':-3.93070   }] # <<<< Problem in polar
-# cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':''    ,  'Cl_alpha': 6.76063, 'alpha0':-2.78090}]
-# cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'_HR',  'Cl_alpha': 6.76063, 'alpha0':-2.78090}] # <<< CFD Not ready
+# cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':''      , 'Cl_alpha':6.50842, 'alpha0':-1.00410 }]
+# cases+=[{'airfoil_name':'du00-w-212' , 'n':22 , 're':3   , 'suffix':''      , 'Cl_alpha':6.71256, 'alpha0':-2.35240}]
+# cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':''      , 'Cl_alpha':6.85040, 'alpha0':-3.93070}] # <<<< Problem in polar
+# cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':''      , 'Cl_alpha':6.76063, 'alpha0':-2.78090}]
+
+cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HRCAT', 'Cl_alpha':6.50842, 'alpha0':-1.00410  }] # NOTE: 0.8 or 0.75
+# cases+=[{'airfoil_name':'du00-w-212' , 'n':22 , 're':3   , 'suffix':'_HRCAT', 'Cl_alpha':6.43284, 'alpha0':-2.35240}]
+# cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':'_HRCAT', 'Cl_alpha':6.56495, 'alpha0':-3.93070}]
+cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'_HRCAT', 'Cl_alpha':6.76063, 'alpha0':-2.78090}]
+
+
 
 pWag = [0.165,  0.045, 0.335,  0.300 ] # Wagner / Jones   Pitch change
 pKus = [0.500,  0.13 , 0.500,  1.000 ] # Kussner          Transverse Gust
@@ -34,6 +38,7 @@ pOF  = [0.3  ,  0.14 , 0.7  ,   0.53 ] # OpenFAST
 
 
 fig = None
+
 
 for cs in cases:
 # for cs in [cases[0]]:
@@ -52,16 +57,16 @@ for cs in cases:
 
 
 #     # ---CFD
-    try:
-        dfc = FASTOutputFile(cfd_outb).toDataFrame()
-        _, trc, stc, chc, dwc = split_chirp(info, dfm, dfc, plot=False)
-        if len(out['dw_h'][0]['mag']==0):
-            print('[WARN] CFD EMPTY')
-        else:
-            fig, out = postpro_chirp_tf(chc, dwc, info, st=stc, plot=True, fig=fig, label='CFD')
-    except:
-        print('>>> CFD FAIL')
-        pass
+#     try:
+    dfc = FASTOutputFile(cfd_outb).toDataFrame()
+    _, trc, stc, chc, dwc = split_chirp(info, dfm, dfc, plot=False)
+    fig=None
+    fig, out = postpro_chirp_tf(chc, dwc, info, st=stc, plot=True, fig=fig, label='CFD')
+#     if len(out['dw_h'][0]['mag']==0):
+#         print('[WARN] CFD EMPTY')
+#     except:
+#         print('>>> CFD FAIL', cfd_outb)
+#         pass
     print('Transient end Cl=', trc['cl'][-2], -info['Cl_alpha']*np.radians(info['alpha0']))
 
 #     plotDatAgg(ax, datUA[2], label='UA2', color=fColrs(2), ls='--')

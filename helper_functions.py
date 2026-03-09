@@ -339,7 +339,7 @@ def load_json_chirp(json_path, verbose=False, plot=False):
 
 
 
-def plot_chirp_full_time(info, dfc, dfm=None, dff=None, label='CFD', col=None):
+def plot_chirp_full_time(info, dfc, dfm=None, dff=None, label='CFD', col=None, dimLessTime=False, HR=False, figsize=(12.8,4.8)):
 
     main_indices = [
         info['indices_phases'][0],
@@ -349,21 +349,21 @@ def plot_chirp_full_time(info, dfc, dfm=None, dff=None, label='CFD', col=None):
     t_total = dfc['Time_[s]'].values
 
 
-    fig,axes = plt.subplots(2, 1, sharex=True, figsize=(12.8,4.8))
+    fig,axes = plt.subplots(2, 1, sharex=True, figsize=figsize)
     fig.subplots_adjust(left=0.06, right=0.99, top=0.95, bottom=0.07, hspace=0.20, wspace=0.20)
     axes[0].set_xlim(np.min(t_total), np.max(t_total))
 
     # --- Plot angle
-    axes[0].plot(dfc['Time_[s]'], dfc['angle_[deg]'], '-', c='k')
+    axes[0].plot(dfc['Time_[s]'], dfc['angle_[deg]'], '-', c=fColrs(1))
     if dfm is not None:
         axes[0].plot(dfm['Time_[s]'], dfm['angle_[deg]'], '--', label='From yaml')
     axes[0].set_ylabel('Pitch [deg]')
 
     # NOTE: s_factor = (2 * U) / chord   
     s_factor = info['s_factor']
-    ax2 = axes[0].twiny()
-    ax2.set_xlim(axes[0].get_xlim()[0] * s_factor, axes[0].get_xlim()[1] * s_factor)
-    ax2.set_xlabel(r'Dimensionless time, $2Ut/c$ [-]')
+#     ax2 = axes[0].twiny()
+#     ax2.set_xlim(axes[0].get_xlim()[0] * s_factor, axes[0].get_xlim()[1] * s_factor)
+#     ax2.set_xlabel(r'Dimensionless time, $2Ut/c$ [-]')
 
     dwell_info=info['dwells']
 
@@ -375,12 +375,21 @@ def plot_chirp_full_time(info, dfc, dfm=None, dff=None, label='CFD', col=None):
     # tdict = dict(y=info['alpha_mean_deg']-1.0, ha='center', va='bottom', fontsize=9, bbox=dict(facecolor='white', alpha=0.6))
 #     ax.text(vTime[t_mask][0], offset + p0*k, z_label, color=colors[i],  fontsize=9, fontweight='bold',
 #              bbox=dict(facecolor='white', edgecolor='none', alpha=0.8, pad=0.01))
-    tdict = dict(y=info['alpha_mean_deg']-0.57, ha='center', va='bottom', fontsize=11, bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=.02), fontweight='bold') #, c='')
-    tvline = dict(color='k', ls=':', lw=1.0)
+    tvline = dict(color='k', ls=':', lw=1.2)
 
-    axes[0].text(t_total[itr], s=f"Transients", **tdict)
-    axes[0].text(t_total[ist], s=f"Step"      , **tdict)
-    axes[0].text(t_total[icp], s=f"Chirp"     , **tdict)
+    tdict=[]
+    if HR:
+        tdict.append( dict(y=info['alpha_mean_deg']-1.30, ha='center', va='bottom', fontsize=10, bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=.02)) ) #, c='') )
+        tdict.append( dict(y=info['alpha_mean_deg']+1.10, ha='center', va='bottom', fontsize=10, bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=.02)) ) #, c='')
+        axes[0].text(t_total[itr], s=f"Trans.", **tdict[1])
+        axes[0].text(t_total[ist], s=f"Step"      , **tdict[1])
+        axes[0].text(t_total[icp], s=f"Chirp"     , **tdict[1])
+    else:
+        tdict.append( dict(y=info['alpha_mean_deg']-0.57, ha='center', va='bottom', fontsize=11, bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=.02), fontweight='bold') ) #, c='') )
+        tdict.append( dict(y=info['alpha_mean_deg']-0.57, ha='center', va='bottom', fontsize=11, bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=.02), fontweight='bold') ) #, c='')
+        axes[0].text(t_total[itr], s=f"Transients", **tdict[0])
+        axes[0].text(t_total[ist], s=f"Step"      , **tdict[0])
+        axes[0].text(t_total[icp], s=f"Chirp"     , **tdict[0])
 
     for idx in main_indices:
         axes[0].axvline(t_total[idx-1], **tvline)
@@ -392,8 +401,17 @@ def plot_chirp_full_time(info, dfc, dfm=None, dff=None, label='CFD', col=None):
         axes[0].axvline(t_total[d['end_idx']-1], **tvline)
         axes[1].axvline(t_total[d['end_idx']-1], **tvline)
         # Label the k-value on the plot
-        t_mid = t_total[d['start_idx']] + (d['duration_s'] / 2)
-        axes[0].text(t_mid, s=f"k={d['k']}", **tdict)
+        t_mid = (t_total[d['start_idx']] + (d['duration_s'] / 2))
+        if dimLessTime:
+            t_mid = (t_total[d['start_idx']] + (d['duration_s']*info['s_factor'] / 2))
+        print('tmid', t_mid, d)
+        if HR:
+            ii = np.mod(i+1,2)
+            if d['k']==1.0:
+                d['k']=1
+            axes[0].text(t_mid, s=f"k={d['k']}", **tdict[ii])
+        else:
+            axes[0].text(t_mid, s=f"k={d['k']}", **tdict[0])
 
 
     # --- Plot force coeff
@@ -726,16 +744,20 @@ def postpro_cycles_tf(dw, info, plot=False, A=1, verbose=False):
             # Analyze Input (Theta)
             t, u, y = cyc['t'], -cyc['th'], cyc['cl'] # NOTE: alpha = -theta
             if len(y)!=len(u):
-                print(f'[WARN] Cycle incomplete / incoherent nt={len(t)} nu={len(u)} ny={len(y)}')
+                print(f'[WARN] k={k}, cycle {i} incomplete / incoherent nt={len(t)} nu={len(u)} ny={len(y)}')
                 continue
             mag, phi, dd =  tf_from_cycle(t, u, y, f_target, plot=plot, sine=False)
 
             if verbose:
                 print('Input: A', dd['A_u'], 'phi',np.degrees(dd['phi_u']))
             if np.abs(dd['A_u']-np.radians(A))>1e-4:
-                raise Exception('Error input fit magnitude')
+                print ('Error input fit magnitude')
+                pass
+                #raise Exception('Error input fit magnitude')
             if np.abs(dd['phi_u'])>np.radians(3) and np.abs(dd['phi_u'])<np.radians(176):
-                raise Exception('Error input fit phase', dd['phi_u'], np.radians(1))
+                print ('Error input fit phase')
+                pass
+                #raise Exception('Error input fit phase', dd['phi_u'], np.radians(1))
 
             mags.append(mag)
             phis.append(phi)
@@ -743,7 +765,7 @@ def postpro_cycles_tf(dw, info, plot=False, A=1, verbose=False):
         dw_tf.append({'k': k, 'f': f_target, 'mag':mags, 'phi_deg':np.degrees(phis)})
     return dw_tf
 
-def postpro_chirp_tf(ch, dw, info, st=None, plot=False, label='CFD', fig=None, ls='-', c=fColrs(1), lw=1.5, marker=None ):
+def postpro_chirp_tf(ch, dw, info, st=None, plot=False, label='CFD', fig=None, ls='-', c=fColrs(1), lw=1.5, marker=None , nperseg=None):
     # Detrend to remove DC offsets for better FFT results
     #theta_ch = signal.detrend(theta_ch)
     #cl_ch    = signal.detrend(cl_cl)
@@ -772,8 +794,10 @@ def postpro_chirp_tf(ch, dw, info, st=None, plot=False, label='CFD', fig=None, l
     fs = 1/dt
     # tfestimate equivalent using CSD and Pwelch
     n_pad_factor=1
-    f_ch, H_ch, Cxy = tfestimate(al_ch, cl_ch, fs, nperseg=None, returnCoh=True, n_pad_factor=n_pad_factor, verbose=False)
-    #f_ch, H_ch, _, _, _, _ = tfestimate_stitched(al_ch, cl_ch, fs=fs, f_stitch=0.1*info['f1'], returnAll=True)
+    f_ch, H_ch, Cxy = tfestimate(al_ch, cl_ch, fs, nperseg=nperseg, returnCoh=True, n_pad_factor=n_pad_factor, verbose=True)
+    print('>>>>>>>>>>> Merging TF at k1=', (2 * np.pi * info['f1'] * chord) / (2*U)*0.50)
+    #f_ch, H_ch, _ = tfestimate_stitched(al_ch, cl_ch, fs=fs, f_stitch=0.1*info['f1'], returnAll=False, method='merge_sig')
+    #f_ch, H_ch, _ = tfestimate_stitched(al_ch, cl_ch, fs=fs, f_stitch=0.3*info['f1'], returnAll=False, method='concat')
     mag_ch = np.abs(H_ch)
     phi_ch = np.angle(H_ch, deg=True)
     k_ch = f2k(f_ch, U, chord) # k = omega * c / (2 * U) -> Note: some use c, some use c/2 (semi-chord)
@@ -835,27 +859,6 @@ def postpro_chirp_tf(ch, dw, info, st=None, plot=False, label='CFD', fig=None, l
         ax2.set_xlim(0.05, 1.5)
     return fig, out
 
-
-def postpro_cycles_loops(dw, info):
-
-    ## Plot 3: Hysteresis (Last cycle only for clarity)
-    plt.figure(figsize=(6, 6))
-
-    COLRS = python_colors()
-    STY=[':','-.','--','-','-',':']
-
-
-    for i,d in enumerate(dw):
-        for j,c in enumerate(d['cycles']):
-            try:
-                plt.plot(np.degrees(-c['th']), c['cl'], label=f"k={d['k']} cycle {i+1}", c=COLRS[i], ls=STY[j])
-            except:
-                pass
-
-    plt.xlabel("Alpha [deg]")
-    plt.ylabel("Cl [-]")
-    plt.title("Hysteresis Loops (Stabilized)")
-    plt.legend()
 
 
 

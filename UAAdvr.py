@@ -400,10 +400,17 @@ class TemplatedUAAdvr:
         subprocess.run(command, check=True)
 
 
-    def delete_input_files(self):
+    def delete_input_files(self, ignoreList=None):
         for f in self._files_written:
             if f!=self._dvr0_filename and f!=self._dat0_filename:
-                os.remove(f)
+                doDelete=True
+                if ignoreList is not None:
+                    for ii in ignoreList:
+                        if ii in f: 
+                            doDelete=False
+                            break
+                if doDelete:            
+                    os.remove(f)
 
 
     # --------------------------------------------------------------------------------}
@@ -431,7 +438,7 @@ class TemplatedUAAdvr:
         """ 
         - theta [rad]
         """
-        dth = np.gradient(theta, t)
+        dth  = np.gradient(theta, t)
         ddth = np.gradient(dth, t)
         self['SimMod'] = simMod
         if simMod==3:

@@ -6,7 +6,7 @@ Here we generate AD files
 
 """
 
-
+import matplotlib.pyplot as plt
 import numpy as np
 from welib.airfoils.Polar import Polar
 import welib.weio as weio
@@ -21,9 +21,9 @@ ADDir = '_results/_polars_AD/'
 os.makedirs(ADDir, exist_ok = True)
 
 files = glob.glob(csvDir + '*.csv')
-print(files)
+# print(files)
 for f in files:
-    print(f)
+    print('\nt16: Opening:', f)
     basename = os.path.basename(f)
     ADfilename = os.path.join(ADDir, basename.replace('.csv' ,'.dat'))
     pol = Polar(filename=f)
@@ -42,11 +42,12 @@ for f in files:
         else:
             comment = 'Obtained using NALU-Wind - CFD 3D IDDES'
     comment += f'\nSource File: {basename}'
-
+   
+    #pol.unsteadyParams()
     pol.toAeroDyn(ADfilename, comment=comment, Re=Re)
     if 'cfd' in basename.lower()  and '_n' in basename.lower():
-        iLow  = np.argmin(np.abs(pol.alpha+3.0))
-        iHigh = np.argmin(np.abs(pol.alpha-8.0))
+        iLow  = np.argmin(np.abs(pol.alpha+2.8))
+        iHigh = np.argmin(np.abs(pol.alpha-7.0))
         alpha = pol.alpha
         cl = pol.cl
         if cl[iLow]>0 and iLow>0:
@@ -54,6 +55,12 @@ for f in files:
         cd = pol.cd
         cm = pol.cm
         a0, a1 = pol.alpha[iLow], pol.alpha[iHigh]
+        cl0, cl1 = pol.cl[iLow], pol.cl[iHigh]
+
+        cl_alpha = (cl1 - cl0) / (a1 - a0)   # slope
+        cl_at_0 = cl0 - cl_alpha * a0               # intercept
+        alpha0 = -cl_at_0 / cl_alpha
+
         alpha_lin = np.arange(a0, a1 + 1e-12, 0.5)
         cl_lin = np.interp(alpha_lin, [a0, a1], [pol.cl[iLow], pol.cl[iHigh]])
         cd_lin = np.interp(alpha_lin, pol.alpha, pol.cd)

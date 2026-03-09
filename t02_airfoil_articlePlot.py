@@ -66,8 +66,17 @@ for i,ax in enumerate(np.array(axes)[:,1]):
     ax.set_ylim([-0.115, 0.125])
     ax.set_xlim([-0.1, 1.1])
     ax.text(0.40, 0, airfoil_names[i].upper(), ha='center', va='center' , fontsize=fs)
-axes[1,0].text(0.02, 0, 'Leading edge', ha='center', va='center' , fontsize=fs)
-axes[1,2].text(0.995,  0.0005, 'Trailing edge', ha='center', va='center' , fontsize=fs)
+axes[1,0].text(0.02   , -0.009, 'Leading edge', ha='center', va='center' , fontsize=fs)
+axes[1,2].text(0.9905,  -0.0027, 'Trailing edge', ha='center', va='center' , fontsize=fs)
+
+
+for i in range(4):
+    print(np.array(axes[i,2].get_ylim()))
+axes[0,2].set_ylim([-0.0009 ,0.0012])
+axes[1,2].set_ylim([-0.002484,   0.00248451])
+axes[2,2].set_ylim([-0.00044, 0.00200])
+axes[3,2].set_ylim([-0.00050,   0.0016])
+
 
 fig._title = 'airfoil_shapes'
 if export:

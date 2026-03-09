@@ -1,6 +1,34 @@
 """ 
 Generate PNG and CSV for each polars
 
+
+[FAIL] polar3d_z4_n4 /S809_re01.50M        -5.0
+[FAIL] polar3d_z4_n4 /S809_re01.50M        10.0
+[FAIL] polar3d_z4_n4 /du00-w-212_re03.00M           07.5
+[FAIL] polar3d_z4_n4 /du00-w-212_re03.00M           17.5
+[FAIL] polar3d_z4_n4 /du00-w-212_re03.00M           20.0
+[FAIL] polar3d_z4_n4 /du00-w-212_re03.00M           22.5
+[FAIL] polar3d_z4_n4 /nlf1-0416_re04.00M            0.0
+[FAIL] polar3d_z4_n4 /nlf1-0416_re04.00M           12.5
+[FAIL] polar3d_z4_n4 /ffa-w3-211_re10.00M          -2.5
+[FAIL] polar3d_z4_n4 /ffa-w3-211_re10.00M          17.5
+[FAIL] polar3d_z4_n4 /ffa-w3-211_re10.00M          20.0
+
+[FAIL] polar3d_z4_n24/S809_re00.75M           15   < still failing
+[FAIL] polar3d_z4_n24/S809_re00.75M           25   < still failing
+
+[FAIL] polar3d_z4_n24/S809_re01.50M           20 
+
+[FAIL] polar3d_z4_n24/du00-w-212_re03.00M      5  
+[FAIL] polar3d_z4_n24/nlf1-0416_re04.00M      10  
+[FAIL] polar3d_z4_n24/nlf1-0416_re04.00M      20  
+
+
+
+
+
+
+
 """
 
 import os
@@ -13,6 +41,7 @@ from nalulib.nalu_input import NALUInputFile
 from nalulib.nalu_forces import polar_postpro, standardize_polar_df, plot_polars
 from nalulib.nalu_forces_combine import nalu_forces_combine
 from nalulib.weio.csv_file import CSVFile
+from welib.tools.strings import FAIL, WARN, OK, INFO
 
 def airfoil2config(airfoil_name, db, db_stat=None, db_stat2=None):
     config={}
@@ -61,7 +90,7 @@ def airfoil2config(airfoil_name, db, db_stat=None, db_stat2=None):
 out_dir = '_results'
 polout_dir = '_results/_polars/'
 figout_dir = '_results/_figs/'
-case_dir_2d = '_results/cases_polar'
+case_dir_2d = '_results/cases_polar2d'
 
 db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
 # db = db.select({'Roughness':'Clean'})
@@ -77,18 +106,18 @@ db_stat2 = DataFrameDatabase('./experiments/DB_misc_stat.pkl')
 
 
 airfoil_names =  list(airfoil_names) 
-airfoils_names =[]
+airfoil_names =[]
 # airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211'] + ['S809'] #  +  list(airfoil_names)
 # airfoil_names = ['du00-w-212']
-# airfoil_names = ['S809']
+airfoil_names += ['S809']
 # airfoil_names +=['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
 # airfoil_names = ['S809','NACA4415']
 # airfoil_names = ['NACA4415']
 # airfoil_names = ['S813']
 # airfoil_names = ['LS-0421MOD']
-airfoil_names =['ffa-w3-211']
-# airfoil_names =['du00-w-212']
-# airfoil_names =['nlf1-0416']
+# airfoil_names +=['du00-w-212']
+# airfoil_names +=['nlf1-0416']
+# airfoil_names +=['ffa-w3-211']
 
 
 
@@ -111,10 +140,10 @@ for airfoil_name in airfoil_names:
     if len(config['Reynolds'])>2:
         print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HACK ONE RE FOR NOW')
         config['Reynolds'] = [0.75]
-        config['Reynolds'] = [0.8]
+        config['Reynolds'] += [0.8]
+        config['Reynolds'] += [1.5]
 
     for re in config['Reynolds']:
-    #for re in [0.8]:
         print(f'---------------------------- Re={re} ---')
         base = airfoil_name + '_re{:05.2f}M'.format(re)
 
@@ -136,10 +165,11 @@ for airfoil_name in airfoil_names:
                 if len(pol)>0:
                     pol = standardize_polar_df(pol)
                     suffix=k.replace(' ','_')
-                    print('TODO t11 make sure suffic Exp clean is replaced by EXP')
-                    import pdb; pdb.set_trace()
+                    #print('TODO t11 make sure suffic Exp clean is replaced by EXP')
                     suffix = suffix.replace('Exp_Clean', 'EXP')
-                    pol.to_csv(os.path.join(polout_dir, base+'_'+suffix+'.csv'), index=False) # <<<<<<<<<<<<<<<<<<< CSV EXPORT
+                    polfile = os.path.join(polout_dir, base+'_'+suffix+'.csv')
+                    print('Writing:', polfile)
+                    pol.to_csv(polfile, index=False) # <<<<<<<<<<<<<<<<<<< CSV EXPORT
 
         # --- CFD 3D polars 
         print('--- POLARS 3D')
@@ -152,25 +182,12 @@ for airfoil_name in airfoil_names:
             input_files_pp = glob.glob(pattern)
             if not os.path.exists(sim_dir):
                 raise Exception(f'Folder not found, {sim_dir}')
-            combine = len(input_files_pp)>0
-            print('SimDir: ', sim_dir, 'Combine:', combine)
-            if combine:
-                try:
-                    pattern = os.path.join(sim_dir,'forces_*.csv')
-                    csv_files = nalu_forces_combine(pattern=pattern, dry_run=False, verbose=False)
-                    pattern = os.path.join(sim_dir,'_forces_aoa*.csv')
-                    dfp, dfss, _ = polar_postpro(pattern, yaml_file3d, polar_out = polar_out3d, use_ss=True, plot=False, verbose=False, span=4, cfd_ls='-', cfd_m='o')
-                except FileNotFoundError as e:
-                    print('[FAIL] Combine Fail: FileNotFound', e)
-                    continue
-            else:
-                try:
-                    pattern = os.path.join(sim_dir,'forces_aoa*.csv')
-                    dfp, dfss, _ = polar_postpro(pattern, yaml_file3d, polar_out = polar_out3d, use_ss=True, plot=False, verbose=False, span=4, cfd_ls='-', cfd_m='o')
-                except FileNotFoundError as e:
-                    print('[FAIL] Not Combine Fail: FileNotFound', e)
-                    continue
-            print('>>>>>> n', n, 'OK')
+            try:
+                pattern = os.path.join(sim_dir,'forces_aoa*.csv')
+                dfp, dfss, _ = polar_postpro(pattern, yaml_file3d, polar_out = polar_out3d, use_ss=True, plot=False, verbose=False, span=4, cfd_ls='-', cfd_m='o')
+            except FileNotFoundError as e:
+                FAIL('Not Combine Fail: FileNotFound', e)
+                continue
             polars_3d[f'CFD3D_n{n}'] = dfp
 
         polars = {**polars_3d, **polars}
@@ -191,7 +208,11 @@ for airfoil_name in airfoil_names:
 
 
         print('--- PLOT')
-        fig = plot_polars(polars, verbose=True)
+        if airfoil_name =='S809':
+            ylim = [-1, 2]
+        else:
+            ylim = None
+        fig = plot_polars(polars, verbose=True, ylim=ylim)
         fig.suptitle(base.replace('_',' '))
         figfile = os.path.join(figout_dir, base+'.png')
         fig.savefig(figfile)

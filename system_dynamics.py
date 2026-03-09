@@ -46,7 +46,7 @@ def tf_from_step(t, x, A=1):
     return freqs, mag, phase
 
 
-def tfestimate_stitched(x, y, fs, f_stitch=1.5, returnAll=False):
+def tfestimate_stitched(x, y, fs, f_stitch=1.5, returnAll=False, method='concat'):
     """
     Estimates TF using two different window lengths and stitches them.
     - f_stitch: Frequency (Hz) where we switch from long to short windows.
@@ -56,29 +56,81 @@ def tfestimate_stitched(x, y, fs, f_stitch=1.5, returnAll=False):
     # We want few segments (e.g., 2) to maximize nperseg and resolve low f.
     n_low = len(x) // 2 
     nperseg_low = 2**int(np.log2(n_low))
-    f_l, H_l = tfestimate(x, y, fs, nperseg=nperseg_low)
+    f_l, H_l, C_l = tfestimate(x, y, fs, nperseg=nperseg_low, returnCoh=True)
     
     # --- 2. High-Frequency Pass (Better Averaging / Less Smearing) ---
     # We want many segments (e.g., 16) to smooth out numerical noise.
     n_high = len(x) // 16
     nperseg_high = 2**int(np.log2(n_high))
-    f_h, H_h = tfestimate(x, y, fs, nperseg=nperseg_high)
+    f_h, H_h, C_h = tfestimate(x, y, fs, nperseg=nperseg_high, returnCoh=True)
     
     # --- 3. Stitching Logic ---
-    # Find indices where frequencies are below/above the stitch point
-    idx_l = f_l <= f_stitch
-    idx_h = f_h > f_stitch
-    # Combine frequency arrays and transfer functions
-    f_stitched = np.concatenate([f_l[idx_l], f_h[idx_h]])
-    H_stitched = np.concatenate([H_l[idx_l], H_h[idx_h]])
-    # Sort to ensure monotonicity (important for plotting/interpolation)
-    sort_idx = np.argsort(f_stitched)
+    if method=='concat':
+        # Find indices where frequencies are below/above the stitch point
+        idx_l = f_l <= f_stitch
+        idx_h = f_h > f_stitch
+        # Correction factor to avoid kink
+        H_l_edge = H_l[idx_l][-1]
+        H_h_edge = H_h[idx_h][0]
+        correction_factor = H_l_edge / H_h_edge
+        # Combine frequency arrays and transfer functions
+        f_stitched = np.concatenate([f_l[idx_l], f_h[idx_h]])
+        H_stitched = np.concatenate([H_l[idx_l], H_h[idx_h] * correction_factor])
+        C_stitched = np.concatenate([C_l[idx_l], C_h[idx_h]])
+        # Sort to ensure monotonicity (important for plotting/interpolation)
+        sort_idx = np.argsort(f_stitched)
+        f_stiched, H_stitched, C_stitched = f_stitched[sort_idx], H_stitched[sort_idx], C_stitched[sort_idx]
+    elif method=='merge_coh':
+        f_stiched, H_stitched, C_stitched = merge_tf_coh(f_l, H_l, C_l, f_h, H_h, C_h, f_dense=None)
+    elif method=='merge_sig':
+        f_stiched, H_stitched, C_stitched = merge_tf_sigmoid(f_l, H_l, C_l, f_h, H_h, C_h, f_stitch)
     if returnAll:
-        return f_stitched[sort_idx], H_stitched[sort_idx], f_l, H_l, f_h, H_h
+        return f_stiched, H_stitched, C_stitched, f_l, H_l, f_h, H_h
     else:
-        return f_stitched[sort_idx], H_stitched[sort_idx]
+        return f_stiched, H_stitched, C_stitched
 
-def merge_transfer_functions(f1, H1, C1, f2, H2, C2, f_dense=None):
+def merge_tf_sigmoid(f_l, H_l, C_l, f_h, H_h, C_h, f_stitch, bandwidth=0.2, correct=True):
+    """
+    Blends two TFs using a sigmoid centered at f_stitch.
+    bandwidth: width of the transition zone in Hz.
+
+    Corrects the gain/phase offset between the two passes before blending.
+    """
+
+    # --- Define a common frequency grid (using the finer resolution)
+    f_min, f_max = f_l.min(), f_h.max()
+    f_target = np.unique(np.sort(np.concatenate([f_l, f_h])))
+    #f_target = f_target[(f_target >= f_min) & (f_target <= f_max)]
+
+
+    # --- Interpolate both to the target grid
+    H_l_interp = np.interp(f_target, f_l, np.real(H_l)) + 1j*np.interp(f_target, f_l, np.imag(H_l))
+    H_h_interp = np.interp(f_target, f_h, np.real(H_h)) + 1j*np.interp(f_target, f_h, np.imag(H_h))
+    C_l_interp = np.interp(f_target, f_l, C_l)
+    C_h_interp = np.interp(f_target, f_h, C_h)
+
+    # --- Apply correction to the high-frequency pass. 
+    # --- Interpolate to find the exact values at f_stitch for both passes
+    # Calculate the correction factor (Complex Gain)
+    # This factor 'shifts' H_h to match H_l at the stitch point
+    if correct:
+        def get_val(f, H, target_f):
+            return np.interp(target_f, f, np.real(H)) + 1j*np.interp(target_f, f, np.imag(H))
+        H_l_at_stitch = get_val(f_l, H_l, f_stitch)
+        H_h_at_stitch = get_val(f_h, H_h, f_stitch)
+        correction_factor = H_l_at_stitch / H_h_at_stitch
+        H_h_interp = H_h_interp * correction_factor 
+
+    # 5. Sigmoid blend the corrected versions
+    k = 10 / bandwidth
+    w_h = 1 / (1 + np.exp(-k * (f_target - f_stitch)))
+    
+    H_stitched = H_l_interp * (1 - w_h) + H_h_interp * w_h
+    C_stitched = C_l_interp * (1 - w_h) + C_h_interp * w_h
+
+    return f_target, H_stitched, C_stitched
+
+def merge_tf_coh(f1, H1, C1, f2, H2, C2, f_dense=None):
     """
     Merges two Transfer Functions (H) using Coherence (C) as a weighting factor.
     Automatically interpolates both to a common frequency grid.
@@ -120,7 +172,6 @@ def merge_transfer_functions(f1, H1, C1, f2, H2, C2, f_dense=None):
     # 4. Perform the Merge
     H_merged = (H1_interp * w1 + H2_interp * w2) / total_w
     C_merged = (C1_interp * w1 + C2_interp * w2) / total_w
-    
     return f_target, H_merged, C_merged
 
 
@@ -138,12 +189,12 @@ def tfestimate(x, y, fs, nperseg=None, n_pad_factor=1, n_segments=8, returnCoh=F
     x = np.asarray(x)
     y = np.asarray(y)
     if nperseg is None:
-            # Heuristic: Aim for ~8 segments, then round down to nearest power of 2 for FFT efficiency.
-            n_ideal = len(x) // n_segments
-            nperseg = 2**int(np.log2(n_ideal))  # Next power of 2
-            nperseg = max(nperseg, 256) # Ensure it's not smaller than 256
-            if verbose:
-                print(f"Auto-selected nperseg: {nperseg} (Total samples: {len(x)})")
+        # Heuristic: Aim for ~8 segments, then round down to nearest power of 2 for FFT efficiency.
+        n_ideal = len(x) // n_segments
+        nperseg = 2**int(np.log2(n_ideal))  # Next power of 2
+        nperseg = max(nperseg, 256) # Ensure it's not smaller than 256
+        if verbose:
+            print(f"Auto-selected nperseg: {nperseg} (Total samples: {len(x)})")
     # Define nfft for padding. 
     # This interpolates the spectrum, giving you more points (delta_f = fs/nfft)
     nfft = nperseg * n_pad_factor

@@ -3,7 +3,8 @@ import weio
 import pandas as pd
 from nalulib.nalu_forces import standardize_polar_df
 
-def get_cl_alpha_slope(df, alpha_min=-2.5, alpha_max=10.5):
+def get_cl_alpha_slope(df, alpha_min=-2.5, alpha_max=10.0):
+# def get_cl_alpha_slope(df, alpha_min=-2.5, alpha_max=10.5):
     """
     Computes the lift curve slope dCl/dAlpha using linear regression.
     """
@@ -17,9 +18,10 @@ def get_cl_alpha_slope(df, alpha_min=-2.5, alpha_max=10.5):
     
     # Perform linear fit: Cl = slope * Alpha + intercept
     slope, intercept = np.polyfit(alpha_sub, cl_sub, 1)
+    slope *= 180/np.pi
     return slope
 
-def report_slopes(airfoil_name, data_dicts):
+def report_slopes(airfoil_name, data_dicts, alpha_min=-2.5, alpha_max=10.0):
     """
     Calculates slopes and prints a comparison report.
     data_dicts: list of {'label': str, 'df': DataFrame}
@@ -33,23 +35,23 @@ def report_slopes(airfoil_name, data_dicts):
     exp_slope = results.get('Exp')
     
     print(f"\n--- Lift Curve Slope Report: {airfoil_name} ---")
-    print(f"{'Case':<15} | {'Slope [1/deg]':<15} | {'Rel. Error [%]':<10}")
+    print(f"{'Case':<15} | {'Slope [1/rad]':<15} | {'Rel. Error [%]':<10}")
     print("-" * 45)
     
     for label, slope in results.items():
         if np.isnan(slope):
             error_str = "N/A"
         elif label == 'Exp':
-            error_str = "0.00 (Ref)"
+            error_str = "---"
         else:
             rel_error = (slope - exp_slope) / exp_slope * 100
-            error_str = f"{rel_error:+.2f}"
+            error_str = f"{rel_error:+.1f}"
             
-        print(f"{label:<15} | {slope:<15.5f} | {error_str:<10}")
+        print(f"{label:<15} | {slope:<15.2f} | {error_str:<10}")
 
 # --- Main Execution Loop ---
 airfoil_configs = [
-    {'name': 'S809',       're': '00.80M', 're_label': 0.75},
+    {'name': 'S809',       're': '00.75M', 're_label': 0.75},
     {'name': 'du00-w-212', 're': '03.00M', 're_label': 3},
     {'name': 'nlf1-0416',  're': '04.00M', 're_label': 4}
 ]
@@ -72,12 +74,13 @@ for cfg in airfoil_configs:
     data_to_compare = [
         {'label': 'Exp',        'df': dfe},
         {'label': 'CFD 2D',     'df': df1},
-        {'label': 'CFD 3D n4',  'df': df2},
+        {'label': 'CFD 3D n121','df': df4},
         {'label': 'CFD 3D n24', 'df': df3},
-        {'label': 'CFD 3D n121','df': df4}
+        {'label': 'CFD 3D n4',  'df': df2}
     ]
     
-    report_slopes(name, data_to_compare)
+    print('TODO RANGE PER AIRFOIL' )
+    report_slopes(name, data_to_compare, alpha_min=-2.5, alpha_max=10.0)
         
 #     except FileNotFoundError as e:
 #         print(f"Skipping {name}: File not found.")
