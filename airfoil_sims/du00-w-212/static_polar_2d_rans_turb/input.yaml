@@ -5,7 +5,7 @@
 # U8 =34.1m/s, ? =1.225kg/m3, µt/µ =1 
 # k8 =0.0013020495206400003, ?8=114.54981120000002 
 #
-# RANS using 1-eq Gamma transition model
+# RANS using fully turbulent no transtion
 # 
 # Turbulence / Transition model: SST-2003 with the 1-eq Gamma transition model
 #
@@ -242,17 +242,14 @@ realms:
     name: myOptions
     options:
     - hybrid_factor:
-        gamma_transition: 1.0
         specific_dissipation_rate: 1.0
         turbulent_ke: 1.0
         velocity: 1.0
     - upw_factor:
-        gamma_transition: 0.0
         specific_dissipation_rate: 0.0
         turbulent_ke: 0.0
         velocity: 1.0
     - alpha_upw:
-        gamma_transition: 1.0
         specific_dissipation_rate: 1.0
         turbulent_ke: 1.0
         velocity: 1.0
@@ -264,13 +261,11 @@ realms:
         turbulent_ke: true
         velocity: true
     - projected_nodal_gradient:
-        gamma_transition: element
         pressure: element
         specific_dissipation_rate: element
         turbulent_ke: element
         velocity: element
     - relaxation_factor:
-        gamma_transition: 0.7
         pressure: 0.3
         specific_dissipation_rate: 0.7
         turbulent_ke: 0.7
