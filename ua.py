@@ -50,33 +50,33 @@ def compute_bl_response(t, alpha, U=1, Cl_alpha=1, A1=0.165, A2 = 0.335, B1= 0.0
         
     return cl_out
 
+def get_ua_mod0_tf(k, Cl_alpha=2*np.pi):
+    """
+    Returns magnitude and phase (degrees) for UA Mod 0 transfer function.
+    H(jk) = Cl_alpha * (1 + jk)
+    """
+    # Transfer Function H = Cl_alpha + i * (Cl_alpha * k)
+    h_complex = Cl_alpha * (1 + 1j * k)
+    
+    magnitude = np.abs(h_complex)
+    # Phase in degrees (positive indicates a lead)
+    phase_deg = np.angle(h_complex, deg=True)
+    
+    return magnitude, phase_deg
+
+
 
 def get_analytical_tf(freqs, U=1, Cl_alpha=1, A1=0.165, A2 = 0.335, b1= 0.0455, b2=0.3, chord=1):
     """ 
         Tu: time constant [s], defined as chord / (2 * U)
-
-    NOTE: k_red =  omega/ Tu
-
+        NOTE: k_red =  omega/ Tu
     """
-
     omegas = 2 * np.pi * freqs
     s     = 1j * omegas
     Tu    = chord / (2*U)
     k =  (np.pi * freqs * chord) / U  # [-]
-    print('Tu', Tu)
-
-    # Non-dimensional Laplace variable
-    # s = j * k, where k is reduced frequency (omega*c / 2V)
-    omega_red = omegas * (chord / (2 * U))
-    s_red = 1j * omega_red
-    
-    # Rate-based deficiency terms
-    # beta_sq is usually 1.0 for low speed
-    term1 = (A1 * s_red) / (s_red + b1)
-    term2 = (A2 * s_red) / (s_red + b2)
     
     # Total Circulatory TF
-    #H_circ = Cl_alpha * (1 - (A1 * b1) / (s_red + b1) - (A2 * b2) / (s_red + b2)) # OLD , state driven by alpha
     #H_circ = Cl_alpha * (1 - term1 - term2) # State driven by Delta alpha
     H_circ = Cl_alpha * ((1 - A1 - A2) + (b1 * A1) / (s * Tu + b1) + (b2 * A2) / (s * Tu + b2))
 
@@ -109,5 +109,137 @@ def get_analytical_tf(freqs, U=1, Cl_alpha=1, A1=0.165, A2 = 0.335, b1= 0.0455, 
     out['chord']    = chord
     return out
 
-#     
-#     return H_circ + H_non_circ
+def get_ua_mod4_tf(freqs, U=1, Cl_alpha=2*np.pi, A1=0.165, A2=0.335, b1=0.0455, b2=0.3, chord=1):
+    """
+    Transfer function from alpha at c/4 to Cl (UA Mod 4).
+    Includes kinematic 3/4-chord transformation, Wagner lag, and added mass.
+    """
+    omegas = 2 * np.pi * freqs
+    s = 1j * omegas
+    Tu = chord / (2 * U)
+    k =  (np.pi * freqs * chord) / U  # [-]
+    
+    # Kinematic mapping from c/4 to 3/4 chord (alpha_34 / alpha_14)
+    # alpha_34 = alpha_14 + (dot_alpha * c/2) / U = alpha_14 * (1 + s*Tu)
+    H_kinematic = (1 + s * Tu)
+
+    # Circulatory response (Wagner approximation)
+    # From Eq 8, 9, 13 in reference
+    H_circ = Cl_alpha * ((1 - A1 - A2) + (b1 * A1) / (s * Tu + b1) + (b2 * A2) / (s * Tu + b2))
+    H_circ *=  H_kinematic 
+    
+    # 4. Non-circulatory / Added Mass term (Eq 16: pi * Tu * omega)
+    # Here omega = s * alpha_14
+    H_nc = np.pi * Tu * s
+    
+    # Total Transfer Function H = Cl / alpha_14
+    H = H_circ + H_nc
+    
+    out=dict()
+    out['f']        = freqs
+    out['k']        = k
+    out['f_hmin']   = freqs[np.argmin(np.abs(H))]
+    out['k_hmin']   = k    [np.argmin(np.abs(H))]
+    print('k_hmin', out['k_hmin'], np.sqrt(((Cl_alpha *A2 * b2**2)/np.pi)**(1/3)-b2**2), np.sqrt((Cl_alpha *A2 * b2)/np.pi) )
+    out['H']        = H
+    out['mag']      = np.abs  (H)
+    out['phi']      = np.angle(H,deg = True)
+    out['H_circ']   = H_circ
+    out['mag_circ'] = np.abs  (H_circ)
+    out['phi_circ'] = np.angle(H_circ,deg = True)
+    out['H_nc']     = H_nc
+    out['mag_nc']   = np.abs  (H_nc)
+    out['phi_nc']   = np.angle(H_nc,deg = True)
+    out['p']        = [A1, b1, A2, b2]
+    out['Tu']       = Tu
+    out['U']        = U
+    out['chord']    = chord
+    return out
+
+
+def get_ua_mod3_tf(freqs, U=1, Cl_alpha=2*np.pi, A1=0.165, A2=0.335, b1=0.0455, b2=0.3, chord=1, filtCutOff=0.5, k_ta=0.75):
+    """
+    Refined UA Mod 3 TF including the AeroDyn low-pass filter 
+    and non-circulatory deficiency terms.
+
+
+    # NOTE: 
+    #   if NC lift (ie. KC%Cn_alpha_q_nc) is set to 0, then the circulatory part below works well
+
+        tau_lp = 1.0 / (2 * np.pi * f_cutoff) # Convert to time constant: tau = 1 / (2 * pi * f_cutoff)
+        H_lp = 1.0 / (1.0 + s * tau_lp)
+        H_circ = Cl_alpha * ((1 - A1 - A2) + (b1 * A1) / (s * Tu + b1) + (b2 * A2) / (s * Tu + b2))
+        H_circ *= H_lp
+    """
+    #A1, A2, b1, b2 = 0.3, 0.7, 0.14, 0.53 # Standard Leishman values
+
+    omegas = 2 * np.pi * freqs
+    s = 1j * omegas
+    Tu = chord / (2 * U)
+    k =  (np.pi * freqs * chord) / U  # [-]
+    
+    # 1. Low-pass filter (Eq 1.8 in manual)
+    # dynamicFilterCutoffHz = max(1.0, U) * filtCutOff / (PI * chord)
+    f_cutoff = max(1.0, U) * filtCutOff / (np.pi * chord)  
+    #dt = 0.00833333
+    #LowPassConst  =  np.exp(-2*np.pi*dt*f_cutoff) # from Eqn 1.8 [7]
+    tau_lp = 1.0 / (2 * np.pi * f_cutoff) # Convert to time constant: tau = 1 / (2 * pi * f_cutoff)
+    # Filter Transfer Function
+    H_lp = 1.0 / (1.0 + s * tau_lp)
+    
+    # 2. Kinematic + Circulatory (Wagner)
+    H_kinematic = (1 + s * Tu)
+    H_circ = Cl_alpha * ((1 - A1 - A2) + (b1 * A1) / (s * Tu + b1) + (b2 * A2) / (s * Tu + b2))
+#     H_circ *=  H_kinematic 
+    H_circ *= H_lp
+    
+    # 3. Non-circulatory (Deficiency part)
+    # Based on Eq 1.18 - acting as a high-freq bleed
+    C_nalpha=Cl_alpha
+    a_s = 340.29
+    M = U / a_s
+    beta_M  = np.sqrt(1-M**2) 
+    k_alpha = 1 / ( (1 - M) + (C_nalpha/2) * M**2 * beta_M * (A1*b1 + A2*b2) )  # Eqn 1.11a
+    k_q     = 1 / ( (1 - M) +  C_nalpha    * M**2 * beta_M * (A1*b1 + A2*b2) )  # Eqn 1.11b   
+    T_I     = chord / a_s                                                    # Eqn 1.11c
+    T_alpha  = T_I * k_alpha * k_ta                                             # Eqn 1.10a
+    T_q      = T_I * k_q     * k_ta
+    #T_alpha2 = 0.75 * chord / (2 * U) # Mach simplified to 0
+    H_nc_a = (4 * T_alpha * s) / (1 + s * T_alpha)
+    H_nc_q = (-1 * T_q * s) / (1 + s * T_q)   * s * chord/U # * H_lp
+    H_nc = H_nc_a + H_nc_q
+    # Not: q = c/U * alpha_dot
+
+    #KC%Kprime_alpha  = KC%T_alpha, xd%Kprime_alpha_minus1(i,j), KC%Kalpha_f, Kalpha_f_minus1 )    ! Eqn 1.18b
+    #KC%Kprime_q      = KC%T_q    , xd%Kprime_q_minus1(i,j)    ,  KC%Kq_f   , Kq_f_minus1     )    ! Eqn 1.19b 
+    #KC%Cn_alpha_nc   =  4*T_alpha * ( KC%Kalpha_f - KC%Kprime_alpha ) / M                                             ! Eqn 1.18a
+    #KC%Cn_q_nc       = -1*T_q     * ( KC%Kq_f - KC%Kprime_q ) / M                                                        ! Eqn 1.19a
+
+    H_lp2 = 1.0 / (1.0 + s * tau_lp)
+    H_nc *= (H_lp2)**2
+    #H_nc *= (H_lp2)
+    
+    # Total Transfer Function
+    #H = H_circ + H_nc * 60 # For 0.75 and fc=5
+    H = H_circ + H_nc * 60 # For 0.75
+
+    out=dict()
+    out['f']        = freqs
+    out['k']        = k
+    out['f_hmin']   = freqs[np.argmin(np.abs(H))]
+    out['k_hmin']   = k    [np.argmin(np.abs(H))]
+    print('k_hmin', out['k_hmin'], np.sqrt(((Cl_alpha *A2 * b2**2)/np.pi)**(1/3)-b2**2), np.sqrt((Cl_alpha *A2 * b2)/np.pi) )
+    out['H']        = H
+    out['mag']      = np.abs  (H)
+    out['phi']      = np.angle(H,deg = True)
+    out['H_circ']   = H_circ
+    out['mag_circ'] = np.abs  (H_circ)
+    out['phi_circ'] = np.angle(H_circ,deg = True)
+    out['H_nc']     = H_nc
+    out['mag_nc']   = np.abs  (H_nc)
+    out['phi_nc']   = np.angle(H_nc,deg = True)
+    out['p']        = [A1, b1, A2, b2]
+    out['Tu']       = Tu
+    out['U']        = U
+    out['chord']    = chord
+    return out

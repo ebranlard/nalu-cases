@@ -6,17 +6,20 @@ import matplotlib.pyplot as plt
 from scipy import signal
 from scipy.optimize import curve_fit
 
+import welib.weio as weio
 from welib.weio.fast_output_file import FASTOutputFile
 from nalulib.weio.csv_file import CSVFile
 from welib.essentials import *
 from welib.tools.figure import setFigureTitle
 
 from helper_functions import postpro_chirp_tf, load_json_chirp, split_chirp, plotmelog, load_ULS
-from ua import get_analytical_tf
+from ua import get_analytical_tf, get_ua_mod0_tf, get_ua_mod4_tf, get_ua_mod3_tf
 
 setFigurePath('../nalu_torque_2026/figs/')
 setFigureFont(12)
 setFigureTitle(1)
+HR=False
+HR=True
 export=False
 export=True
 
@@ -26,7 +29,8 @@ log    = True
 IPlot = []
 IPlot += [0] # Comparison of UA
 
-
+COLUA0 ='#008080'; LSUA0 ='-.'   # Teal
+COLUA0 ='#e377c2'; LSUA0='-.'  # Rasberry pink
 # --------------------------------------------------------------------------------}
 # --- MAIN SCRIPTS
 # --------------------------------------------------------------------------------{
@@ -103,7 +107,8 @@ def plotDatAgg(axes, dat, label=None, color='k', lw=1.5, ls='-', alpha=0.3, dwel
             axes[0].plot( np.mean(dwi0['k_vec']), np.mean(20*np.log10(dwi0['H_rel'])), c=color, lw=lw, ls='', marker='o', ms=4)
             axes[1].plot( np.mean(dwi0['k_vec']), np.mean(dwi0['phi']), c=color, lw=lw, ls='', marker='o', ms=4)
 
-
+    for ax in axes:
+        ax.tick_params(direction='in', top=True, right=True, labelright=False, labeltop=False, which='both')
 
 
 
@@ -113,36 +118,54 @@ def plotDatAgg(axes, dat, label=None, color='k', lw=1.5, ls='-', alpha=0.3, dwel
 
 # --- Main inputs
 cases=[]
-# cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HR' , 'Cl_alpha':6.50842, 'alpha0':  -1.00410  }]
-# cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HR' , 'Cl_alpha':6.50842, 'alpha0':  -1.00410  }]
-# cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'_HR',  'Cl_alpha': 6.76063, 'alpha0':-2.78090}] # <<< CFD Not ready
+if HR:
+#     cases+=[{'airfoil_name':'du00-w-212' , 'n':22 , 're':3   , 'suffix':'_HRCAT', 'Cl_alpha':6.43284, 'alpha0':-2.35240}] # <<<< INCOMPLETE SO FAR
+    cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':'_HRCAT', 'Cl_alpha':6.56495, 'alpha0':-3.93070}]
+    cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'_HRCAT', 'Cl_alpha':6.76063, 'alpha0':-2.78090}]
+    cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HRCAT', 'Cl_alpha':6.50842, 'alpha0':-1.00410  }] # NOTE: 0.8 or 0.75
 
-cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':''    , 'Cl_alpha':6.50842, 'alpha0':  -1.00410 }]
-cases+=[{'airfoil_name':'du00-w-212' , 'n':22 , 're':3   , 'suffix':'' , 'Cl_alpha':6.71256,  'alpha0':-2.35240}]
-cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':'' , 'Cl_alpha':6.85040,  'alpha0':-3.93070   }] # <<<< Problem in polar
-cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':''    ,  'Cl_alpha': 6.76063, 'alpha0':-2.78090}]
+    nperseg=1024 # wiggles showup beyond that
 
+
+else:
+    cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'' , 'Cl_alpha':6.50842, 'alpha0':  -1.00410 }]
+    cases+=[{'airfoil_name':'du00-w-212' , 'n':22 , 're':3   , 'suffix':'' , 'Cl_alpha':6.71256, 'alpha0':-2.35240}]
+    cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':'' , 'Cl_alpha':6.85040, 'alpha0':-3.93070   }] # <<<< Problem in polar
+    cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'' , 'Cl_alpha':6.76063, 'alpha0':-2.78090}]
+
+    nperseg=1024 
 
 fig=None
 doPlot=False
 
 datCFD=None
 datULS=None
-datUA={2:None, 3:None, 4:None, 5:None, '5OF':None, '5Wg':None, '5Ks':None}
+datUA={0:None, 2:None, 3:None, 4:None, 5:None, '5OF':None, '5Wg':None, '5Ks':None}
 
 # --- ULS
-json_path = '_results/cases_chirp_n24/S809/S809_re00.8_mean00_A01.json'
-uls_outb  = '_results/cases_chirp_n24/S809/S809_re00.8_mean00_A01_ULS_OmegaM.csv'
-uaa_outb  = '_results/cases_chirp_n24/S809/S809_re00.8_mean00_A01_UA0_OF.outb'
+if HR:
+    json_path = '_results/cases_chirp_n24/S809/S809_re00.8_mean00_A01_HRCAT.json'
+    uls_outb  = '_results/cases_chirp_n24/S809/S809_re00.8_mean00_A01_HRCAT_ULS.csv'
+    uaa_outb  = '_results/cases_chirp_n24/S809/S809_re00.8_mean00_A01_HRCAT_UA0_OF.outb'
+else:
+    json_path = '_results/cases_chirp_n24/S809/S809_re00.8_mean00_A01.json'
+    uls_outb  = '_results/cases_chirp_n24/S809/S809_re00.8_mean00_A01_ULS_OmegaM.csv'
+    uaa_outb  = '_results/cases_chirp_n24/S809/S809_re00.8_mean00_A01_UA0_OF.outb'
 dfc       = FASTOutputFile(uaa_outb).toDataFrame()
 dfl = load_ULS(uls_outb, dfc)
 info, dfm = load_json_chirp(json_path, verbose = False, plot = False)
 info.update({'Cl_alpha':6.50842, 'alpha0':  -1.00410, 'scale0':scale0, 'log':log})
+
 _, trl, stl, chl, dwl = split_chirp(info, dfm, dfl, plot=False)
-fig, out = postpro_chirp_tf(chl, dwl, info, st=stl, plot=doPlot, fig=fig, label='ULS', c=(0.3,0.3,0.3), lw=2.5, ls=':')
+fig, out = postpro_chirp_tf(chl, dwl, info, st=stl, plot=doPlot, fig=fig, label='ULS', c=(0.3,0.3,0.3), lw=2.5, ls=':', nperseg=nperseg)
 datULS = aggregate(out, datULS)
 
+# --- Polar
+pol = weio.read('_results\cases_chirp_n24\S809\S809_re00.8_mean00_A01_HRCAT_UAA_polar_OF.dat')
 
+
+
+# --- Cases
 for cs in cases:
     base = cs['airfoil_name'] + '_re{:05.2f}M'.format(cs['re']) + cs['suffix']
     print(f"------------------------- {base}------------- {cs['suffix']}")
@@ -154,6 +177,7 @@ for cs in cases:
     # --- JSON Info
     info, dfm    = load_json_chirp(json_path, verbose = False, plot = False)
     info.update(cs)
+    info['Cl_alpha'] = 6.25
     info['scale0'] = scale0
     info['log']    = log
 #     # ---CFD
@@ -161,46 +185,55 @@ for cs in cases:
     if True:
         dfc = FASTOutputFile(cfd_outb).toDataFrame()
         _, trc, stc, chc, dwc = split_chirp(info, dfm, dfc, plot=False)
-        if len(dwc[-1]['cl'])==0:
-            print('[WARN] CFD EMPTY')
-        else:
-            fig, out = postpro_chirp_tf(chc, dwc, info, st=stc, plot=doPlot, fig=fig, label='CFD')
-            print('Transient end Cl=', trc['cl'][-2], -info['Cl_alpha']*np.radians(info['alpha0']))
-            datCFD  = aggregate(out, datCFD)
+#         if len(dwc[-1]['cl'])==0:
+#             print('[WARN] CFD INCOMPLETE')
+#         else:
+        fig, out = postpro_chirp_tf(chc, dwc, info, st=stc, plot=doPlot, fig=fig, label='CFD', nperseg=nperseg)
+        print('Transient end Cl=', trc['cl'][-2], -info['Cl_alpha']*np.radians(info['alpha0']))
+        datCFD  = aggregate(out, datCFD)
 #     except:
 #         print('>>> CFD FAIL')
 #         pass
 
 
+    # NOTE: UA0 uses alpha 34
+    uaa_outb  = yml_path.replace('.yaml', '_UA0_OF.outb'); 
+    dfu = FASTOutputFile(uaa_outb).toDataFrame(); 
+    _, _, stu, chu, dwu = split_chirp(info, dfm, dfu, plot=False)
+    fig, out = postpro_chirp_tf(chu, dwu, info, st=stu, plot=doPlot, fig=fig, label='UA2 OF', c=COLUA0, nperseg=nperseg)
+    datUA[0] = aggregate(out, datUA[0])
+
     uaa_outb  = yml_path.replace('.yaml', '_UA2_OF.outb'); 
     dfu = FASTOutputFile(uaa_outb).toDataFrame(); 
     _, _, stu, chu, dwu = split_chirp(info, dfm, dfu, plot=False)
-    fig, out = postpro_chirp_tf(chu, dwu, info, st=stu, plot=doPlot, fig=fig, label='UA2 OF', c=fColrs(2))
+    fig, out = postpro_chirp_tf(chu, dwu, info, st=stu, plot=doPlot, fig=fig, label='UA2 OF', c=fColrs(2), nperseg=nperseg)
     datUA[2] = aggregate(out, datUA[2])
 
     uaa_outb  = yml_path.replace('.yaml', '_UA3_OF.outb'); 
     dfu = FASTOutputFile(uaa_outb).toDataFrame(); 
+    #dfmm=dfm.copy()
+    #dfmm.loc[dfmm.index[0:-1], 'angle_[deg]'] = -dfu['ALPHA_filt_[deg]']
     _, _, stu, chu, dwu = split_chirp(info, dfm, dfu, plot=False)
-    fig, out = postpro_chirp_tf(chu, dwu, info, st=stu, plot=doPlot, fig=fig, label='UA3 OF', c=fColrs(3))
+    fig, out = postpro_chirp_tf(chu, dwu, info, st=stu, plot=doPlot, fig=fig, label='UA3 OF', c=fColrs(3), nperseg=nperseg)
     datUA[3] = aggregate(out, datUA[3])
 
     uaa_outb  = yml_path.replace('.yaml', '_UA5_OF.outb'); 
     dfu = FASTOutputFile(uaa_outb).toDataFrame(); 
     _, _, stu, chu, dwu = split_chirp(info, dfm, dfu, plot=False)
-    fig, out = postpro_chirp_tf(chu, dwu, info, st=stu, plot=doPlot, fig=fig, label='UA5 OF', c=fColrs(4))
+    fig, out = postpro_chirp_tf(chu, dwu, info, st=stu, plot=doPlot, fig=fig, label='UA5 OF', c=fColrs(4), nperseg=nperseg)
     datUA[5] = aggregate(out, datUA[5])
     datUA['5OF'] = aggregate(out, datUA['5OF'])
 
     uaa_outb  = yml_path.replace('.yaml', '_UA5_Wg.outb'); 
     dfu = FASTOutputFile(uaa_outb).toDataFrame(); 
     _, _, stu, chu, dwu = split_chirp(info, dfm, dfu, plot=False)
-    fig, out = postpro_chirp_tf(chu, dwu, info, st=stu, plot=doPlot, fig=fig, label='UA5 Wg', c=python_colors(1))
+    fig, out = postpro_chirp_tf(chu, dwu, info, st=stu, plot=doPlot, fig=fig, label='UA5 Wg', c=python_colors(1), nperseg=nperseg)
     datUA['5Wg'] = aggregate(out, datUA['5Wg'])
 # 
     uaa_outb  = yml_path.replace('.yaml', '_UA5_Ks.outb'); 
     dfu = FASTOutputFile(uaa_outb).toDataFrame(); 
     _, _, stu, chu, dwu = split_chirp(info, dfm, dfu, plot=False)
-    fig, out = postpro_chirp_tf(chu, dwu, info, st=stu, plot=doPlot, fig=fig, label='UA5 Ks', c=python_colors(2))
+    fig, out = postpro_chirp_tf(chu, dwu, info, st=stu, plot=doPlot, fig=fig, label='UA5 Ks', c=python_colors(2), nperseg=nperseg)
     datUA['5Ks'] = aggregate(out, datUA['5Ks'])
 
 
@@ -224,37 +257,63 @@ if doPlot:
 
     fig.suptitle(base.replace('_',' '))
     axes = fig.axes
-    axes[0].set_ylim([-5, 2])
-    axes[0].set_xlim(0.05, 1.2)
-    axes[1].set_xlim(0.05, 1.2)
-    axes[1].set_ylim([-65, 30])
+    if HR:
+        axes[0].set_ylim([-10, 2])
+        axes[0].set_xlim(0.01, 1.2)
+        axes[1].set_xlim(0.01, 1.2)
+        axes[1].set_ylim([-110, 110])
+        axes[1].set_yticks([-90, -45, 0, 45, 90])
+    else:
+        axes[0].set_ylim([-5, 2])
+        axes[0].set_xlim(0.05, 1.2)
+        axes[1].set_xlim(0.05, 1.2)
+        axes[1].set_ylim([-65, 30])
     axes[0].legend(ncol=3, fontsize=10)
-    axes[0].set_ylabel(r'Gain $20\log |H|/|H(0)|$ [db]')
+    axes[0].set_ylabel(r'Gain $20 \log |H|/|H(0)|$ [dB]')
 
 
 
 
 
 # --------------------------------------------------------------------------------}
-# --- SuperFig 
+# --- SuperFig  UAMod compare and CFD
 # --------------------------------------------------------------------------------{
-fig, axes = plt.subplots(2, 1, sharex=True, figsize=(6.4,4.8))
-fig.subplots_adjust(left=0.12, right=0.95, top=0.97, bottom=0.11, hspace=0.04, wspace=0.20)
-plotDatAgg(axes, datCFD, label='CFD', color=fColrs(1), ls='-')
-plotDatAgg(axes, datULS, label='ULS', color=(0.3,0.3,0.3), lw=2.5, ls=':')
-plotDatAgg(axes, datUA[2], label='UA2', color=fColrs(2), ls='--')
-plotDatAgg(axes, datUA[3], label='UA3', color=fColrs(3), ls='--')
-plotDatAgg(axes, datUA[5], label='UA5', color=fColrs(4), ls='--', lw=2)
-axes[0].set_xscale('log')
-axes[0].set_ylim([-5, 2])
-axes[0].set_xlim(0.05, 1.2)
-axes[1].set_xlim(0.05, 1.2)
-axes[1].set_ylim([-67, 34])
-axes[0].set_ylabel(r'Gain $20\log |H|/|H(0)|$ [db]')
-axes[1].set_ylabel(r'Phase $\angle H$ [-]')
-axes[1].set_xlabel(r'Reduced frequency $k$ [-]')
-axes[0].legend(ncol=3, fontsize=10, loc='lower left')
-fig._title='TransferFunctionMultiFidelity'
+if True:
+    fig, axes = plt.subplots(2, 1, sharex=True, figsize=(6.4,4.8))
+    fig.subplots_adjust(left=0.12, right=0.95, top=0.97, bottom=0.11, hspace=0.04, wspace=0.20)
+    #axes[1].axhline(0, ls=':', c=(0.5,0.5,0.5), alpha=0.8)
+    # for y in [-90, 45, 0, 45, 90]:
+    # axes[1].axhline(y, ls='-', c='k', lw=0.05)
+    plotDatAgg(axes, datCFD, label='CFD', color=fColrs(1), ls='-')
+    plotDatAgg(axes, datULS, label='ULS', color=(0.3,0.3,0.3), lw=2.5, ls=':')
+    plotDatAgg(axes, datUA[0], label='UA0', color=COLUA0, ls=LSUA0)
+    plotDatAgg(axes, datUA[2], label='UA2', color=fColrs(2), ls='--')
+    plotDatAgg(axes, datUA[3], label='UA3', color=fColrs(3), ls='--')
+    plotDatAgg(axes, datUA[5], label='UA5', color=fColrs(4), ls='--', lw=2)
+    axes[0].set_xscale('log')
+
+    if HR:
+        axes[0].set_ylim([-14, 5])
+        axes[0].set_xlim(0.01, 1.2)
+        axes[1].set_xlim(0.01, 1.2)
+        axes[1].set_ylim([-110, 110])
+        axes[1].set_yticks([-90, -45, 0, 45, 90])
+        axes[0].set_yticks([-10, -5, 0, 5])
+        axes[0].grid(ls=':')
+        axes[1].grid(ls=':')
+    else:
+        axes[0].set_ylim([-5, 2])
+        axes[0].set_xlim(0.05, 1.2)
+        axes[1].set_xlim(0.05, 1.2)
+        axes[1].set_ylim([-67, 34])
+    axes[0].set_ylabel(r'Gain $20 \log |H|/|H(0)|$ [dB]')
+    axes[1].set_ylabel(r'Phase $\angle H$ [-]')
+    axes[1].set_xlabel(r'Reduced frequency $k$ [-]')
+    axes[0].legend(ncol=3, fontsize=10, loc='lower left')
+    if HR:
+        fig._title='TransferFunctionMultiFidelityHR'
+    else:
+        fig._title='TransferFunctionMultiFidelity'
 
 
 # --------------------------------------------------------------------------------}
@@ -262,37 +321,111 @@ fig._title='TransferFunctionMultiFidelity'
 # --------------------------------------------------------------------------------{
 fig, axes = plt.subplots(2, 1, sharex=True, figsize=(6.4,4.8))
 fig.subplots_adjust(left=0.12, right=0.95, top=0.97, bottom=0.11, hspace=0.04, wspace=0.20)
-plotDatAgg(axes,datCFD      ,label = 'CFD'        ,color = fColrs(1),ls = '-'        ,  dwells=False, bg=False)
-# plotDatAgg(axes, datUA[3],   label='UA3'         , color=fColrs(3),  ls='--',           dwells=False, bg=False)
-plotDatAgg(axes,datUA['5OF'],label = 'UA5'     ,color = fColrs(4),ls = '--',lw = 2 , dwells=False, bg=False)
+# plotDatAgg(axes,datCFD      ,label = 'CFD'        ,color = fColrs(1),ls = '-'        ,  dwells=False, bg=False)
+
+plotDatAgg(axes, datUA[0], label='UA0', color=COLUA0, ls=None, dwells=False, bg=False, lw=2.5)
+plotDatAgg(axes,datUA['5OF'],label = 'UA5'     ,color = fColrs(4),ls = '--',lw = 2.5 , dwells=False, bg=False)
+# plotDatAgg(axes,datUA[2],label = 'UA2'     ,color = fColrs(2),ls = '--',lw = 2.5 , dwells=False, bg=False)
+plotDatAgg(axes,datUA[3],label = 'UA3'     ,color = fColrs(3),ls = '--',lw = 2.5 , dwells=False, bg=False)
+
+
 # plotDatAgg(axes,datUA['5Wg'],label = 'UA5 Wagner' ,color = fColrs(4),ls = ':' ,lw = 2 , dwells=False, bg=False)
 # plotDatAgg(axes,datUA['5Ks'],label = 'UA5 Kussner',color = fColrs(4),ls = '-.',lw = 2 , dwells=False, bg=False)
 axes[0].set_xscale('log')
-axes[0].set_ylim([-5, 2])
-axes[0].set_xlim(0.05, 1.2)
-axes[1].set_xlim(0.05, 1.2)
-axes[1].set_ylim([-67, 34])
-axes[0].set_ylabel(r'Gain $20\log |H|/|H(0)|$ [db]')
+if HR:
+    axes[0].set_ylim([-14, 5])
+    axes[0].set_xlim(0.01, 1.2)
+    axes[1].set_xlim(0.01, 1.2)
+    axes[1].set_ylim([-110, 110])
+    axes[1].set_yticks([-90, -45, 0, 45, 90])
+    axes[0].set_yticks([-10, -5, 0, 5])
+    axes[0].grid(ls=':')
+    axes[1].grid(ls=':')
+else:
+    axes[0].set_ylim([-5, 2])
+    axes[0].set_xlim(0.05, 1.2)
+    axes[1].set_xlim(0.05, 1.2)
+    axes[1].set_ylim([-67, 34])
+axes[0].set_ylabel(r'Gain $20 \log |H|/|H(0)|$ [dB]')
 axes[1].set_ylabel(r'Phase $\angle H$ [-]')
 axes[1].set_xlabel(r'Reduced frequency $k$ [-]')
-fig._title='TransferFunctionTheoryComp'
+if HR:
+    fig._title='TransferFunctionTheoryCompHR'
+else:
+    fig._title='TransferFunctionTheoryComp'
 # --- Theory
 f_th = out['f']
-pTh = pWag
-out_th = get_analytical_tf(f_th, U=info['U'], Cl_alpha=info['Cl_alpha'], A1=pTh[0], A2=pTh[2], b1=pTh[1], b2=pTh[3], chord=info['chord'])
-plotmelog(fig.axes[0], out['k'], out_th['mag'], info, ref=out_th['mag'][1], label='Theory - Wagner', c='k')
-fig.axes[1].plot(out['k'],             out_th['phi']                  , label='Theory - Wagner', c='k')
+k_th = out['k']
+
+
+# TODO TODO TODO UNCOMMENT
 pTh = pOF
-out_th = get_analytical_tf(f_th, U=info['U'], Cl_alpha=info['Cl_alpha'], A1=pTh[0], A2=pTh[2], b1=pTh[1], b2=pTh[3], chord=info['chord'])
-plotmelog(fig.axes[0], out['k'], out_th['mag'], info, ref=out_th['mag'][1], label='Theory - OpenFAST', c='k', ls='--')
-fig.axes[1].plot(out['k'],             out_th['phi']                  , label='Theory - OpenFAST', c='k', ls='--')
+out_th = get_ua_mod4_tf(f_th, U=info['U'], Cl_alpha=info['Cl_alpha'], A1=pTh[0], A2=pTh[2], b1=pTh[1], b2=pTh[3], chord=info['chord'])
+plotmelog(fig.axes[0], out['k'], out_th['mag'], info, ref=out_th['mag'][1], label='Theory - UA5', c='k', ls='--')
+fig.axes[1].plot(      out['k'], out_th['phi']                            , label='Theory - UA5', c='k', ls='--')
+# 
+mag, phi = get_ua_mod0_tf(k_th, Cl_alpha=info['Cl_alpha'])
+plotmelog(fig.axes[0], out['k'], mag, info, ref=mag[1], label='Theory - UA0', c='k', ls='-.')
+fig.axes[1].plot(      out['k'], phi                  , label='Theory - UA0', c='k', ls='-.')
+
+
+# pTh = pOF
+# out_th = get_analytical_tf(f_th, U=info['U'], Cl_alpha=info['Cl_alpha'], A1=pTh[0], A2=pTh[2], b1=pTh[1], b2=pTh[3], chord=info['chord'])
+# plotmelog(fig.axes[0], out['k'], out_th['mag_circ'], info, ref=out_th['mag_circ'][1], label='Theory Circ', c='k', ls='--')
+# fig.axes[1].plot(      out['k'], out_th['phi_circ']                                 , label='Theory Circ - TF from 3/4', c='k', ls='--')
+# 
+# pTh = pOF
+# out_th = get_ua_mod4_tf(f_th, U=info['U'], Cl_alpha=info['Cl_alpha'], A1=pTh[0], A2=pTh[2], b1=pTh[1], b2=pTh[3], chord=info['chord'])
+# plotmelog(fig.axes[0], out['k'], out_th['mag_circ'], info, ref=out_th['mag_circ'][1], label='Theory - OpenFAST Circ', c='k', ls='--')
+# fig.axes[1].plot(      out['k'], out_th['phi_circ']                                 , label='Theory Circ - TF from 1/4', c='k', ls='--')
+
+
+
+
+# --- UA3 based on pol
+k_ta             = pol['re']
+info['Cl_alpha'] = pol['C_nalpha']
+filtCutOff       = pol['filtCutOff']
+print('>>> C_nalpha', pol['C_nalpha'])
+print('>>> filtCut ', pol['filtCutOff'])
+print('>>> k_ta    ', pol['re'])
+
+
+pTh = pOF
+out_th = get_ua_mod3_tf(f_th, U=info['U'], Cl_alpha=info['Cl_alpha'], A1=pTh[0], A2=pTh[2], b1=pTh[1], b2=pTh[3], chord=info['chord'], filtCutOff=filtCutOff, k_ta=k_ta)
+plotmelog(fig.axes[0], out['k'], out_th['mag'], info, ref=out_th['mag'][1], label='Theory - UA3', c='k', ls='--')
+fig.axes[1].plot(      out['k'], out_th['phi']                            , label='Theory - UA3', c='k', ls='--')
+
+# pTh = pOF
+# out_th = get_ua_mod3_tf(f_th, U=info['U'], Cl_alpha=info['Cl_alpha'], A1=pTh[0], A2=pTh[2], b1=pTh[1], b2=pTh[3], chord=info['chord'], filtCutOff=filtCutOff, k_ta=k_ta)
+# plotmelog(fig.axes[0], out['k'], out_th['mag_circ'], info, ref=out_th['mag_circ'][1], label='Theory3 - OpenFAST Circ', c='k', ls='-.')
+# fig.axes[1].plot(      out['k'], out_th['phi_circ']                                 , label='Theory3 Circ - TF from 1/4', c='k', ls='-.')
+# 
+# pTh = pOF
+# out_th = get_ua_mod3_tf(f_th, U=info['U'], Cl_alpha=info['Cl_alpha'], A1=pTh[0], A2=pTh[2], b1=pTh[1], b2=pTh[3], chord=info['chord'], filtCutOff=filtCutOff, k_ta=k_ta)
+# plotmelog(fig.axes[0], out['k'], out_th['mag_nc'], info, ref=out_th['mag_nc'][1], label='Theory3 - OpenFAST NC', c='k', ls=':')
+# fig.axes[1].plot(      out['k'], out_th['phi_nc']                                 , label='Theory3 NC - TF from 1/4', c='k', ls=':')
+# 
+
+
+
+# pTh = pWag
+# out_th = get_analytical_tf(f_th, U=info['U'], Cl_alpha=info['Cl_alpha'], A1=pTh[0], A2=pTh[2], b1=pTh[1], b2=pTh[3], chord=info['chord'])
+# plotmelog(fig.axes[0], out['k'], out_th['mag'], info, ref=out_th['mag'][1], label='Theory - Wagner', c='k')
+# fig.axes[1].plot(out['k'],             out_th['phi']                  , label='Theory - Wagner', c='k')
+
+
+
 # pTh = pKus
 # out_th = get_analytical_tf(f_th, U=info['U'], Cl_alpha=info['Cl_alpha'], A1=pTh[0], A2=pTh[2], b1=pTh[1], b2=pTh[3], chord=info['chord'])
 # plotmelog(fig.axes[0], out['k'], out_th['mag'], info, ref=out_th['mag'][1], label='Theory - Kussner', c='k', ls=':')
 # fig.axes[1].plot(out['k'],             out_th['phi']                  , label='Theory - Kussner', c='k', ls=':')
-axes[0].set_ylim([-14, 2])
 
-axes[0].legend(ncol=2, fontsize=10, loc='lower left')
+axes[0].legend(ncol=2, fontsize=10, loc='lower left') # TODO
+#axes[0].legend(ncol=2, fontsize=10, loc='upper left')
+#axes[0].set_ylim([-20, 40])
+#axes[1].set_ylim([-180, 90])
+#axes[0].set_xlim(0.01, 10)
 
 
 
