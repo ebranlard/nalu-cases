@@ -44,7 +44,7 @@ check_file() {
         echo "[ OK ] Found  $file"
     else
         echo "[FAIL] Missing: $file"
-        exit "$exit_code"
+        exit 1
     fi
 }
 
@@ -72,7 +72,9 @@ if [ "$missing" -ne 0 ]; then
     echo "[FAIL] One or more required commands are missing."
     echo "       Please install the following dependencies before running this script:"
     echo ""
-    echo "sudo apt-get install python3-dev gfortran valgrind cmake libblas-dev liblapack-dev build-essential swig python-is-python3 python3-venv"
+    echo "sudo apt-get install python3-dev gfortran valgrind cmake libblas-dev liblapack-dev build-essential swig python-is-python3 python3-venv python3-virtualenv"
+#     echo sudo apt install python3.12 python3.12-dev python3.12-venv"
+
 # sudo apt-get install python3-dev gfortran valgrind cmake libblas-dev liblapack-dev build-essential swig
 # sudo apt-get install python-is-python3
 # sudo apt-get install f2py3
@@ -139,6 +141,54 @@ echo "[ OK ] ENV FILE and ENV VAR LOADED"
 #echo "PESC_DIR :        $PETSC_DIR"    
 #echo "PESC_ARCH:        $PETSC_ARCH"  
 
+echo "------------------------ PYTHON ENV --------------------------"
+# Check if environment exists
+if [ ! -d "$PYENV_DIR" ]; then
+    echo "[INFO] Python environment not found, creating it..."
+    python -m venv "$PYENV_DIR"
+    #virtualenv -p python3.12 "$PYENV_DIR"
+    if [ $? -ne 0 ]; then
+        echo "[FAIL] Failed to create Python environment at $PYENV_DIR"
+        rm -rf "$PYENV_DIR"
+        exit 1
+    fi
+fi
+#  Activate environment
+source "$PYENV_DIR/bin/activate"
+if [ $? -ne 0 ]; then
+    echo "[FAIL] Failed to activate Python environment"
+    exit 1
+fi
+echo "[ OK ] Python environment activated at $PYENV_DIR"
+
+# --- makesure we run python 3.12
+PYTHON_EXE = python
+PYTHON_MAJOR=$("$PYTHON_EXE" -c 'import sys; print(sys.version_info.major)')
+PYTHON_MINOR=$("$PYTHON_EXE" -c 'import sys; print(sys.version_info.minor)')
+echo "Detected Python version: $PYTHON_MAJOR.$PYTHON_MINOR"
+# Validate that major is 3, and minor is between 9 and 12 inclusive
+#if [ "$PYTHON_MAJOR" -ne 3 ] || [ "$PYTHON_MINOR" -lt 9 ] || [ "$PYTHON_MINOR" -gt 12 ]; then
+#    echo "Error: This script requires a Python version between 3.9 and 3.12."
+#    echo "Aborting build execution."
+#    exit 1
+#fi
+
+
+
+
+
+
+echo "------------------------ PYTHON --------------------------"
+echo " --- NUMPY"
+pip install numpy==1.26.4
+echo " --- SCIPY"
+pip install scipy==1.15
+echo " --- SCIPY"
+pip install py-xdrlib # For python > 3.13 for PETSC
+pip install scipy
+
+
+
 
 echo "-------------------------- OPENMPI --------------------------"
 MPICC_PATH="$MPI_INSTALL_DIR/bin/mpicc"
@@ -175,6 +225,8 @@ fi
  
 echo "--------------------------- PETSC ---------------------------"
 PETSC_LIB=$PETSC_DIR/$PETSC_ARCH/lib/libpetsc.so 
+CONF_HEADER="$PETSC_DIR/$PETSC_ARCH/include/petscconf.h"
+PETSC_VARIABLES="$PETSC_DIR/$PETSC_ARCH/lib/petsc/conf/petscvariables"
 echo "PETSC_DIR : $PETSC_DIR"
 echo "PETSC_ARCH: $PETSC_ARCH"
 echo "PETSC_LIB : $PETSC_LIB"
@@ -186,14 +238,55 @@ else
     cd petsc
     git checkout v3.21.0
 fi
-if [ ! -f "$PETSC_LIB" ]; then
-    cd $LIB_DIR/petsc
+cd $LIB_DIR/petsc
+if [ ! -f "$CONF_HEADER" ] || [ ! -f "$PETSC_VARIABLES" ]; then
     echo ">>> CONFIGURE PETSC"
     git describe
-    ./configure --PETSC_ARCH=$PETSC_ARCH --with-scalar-type=real --with-debugging=1 --with-mpi-dir=$MPI_INSTALL_DIR --download-metis=yes --download-parmetis=yes --download-superlu_dist=yes --with-shared-libraries=yes --with-fortran-bindings=1 --with-cxx-dialect=C++11 --download-fblaslapack=1
-    echo ">>> MAKE PETSC"
-    make -j 12 PETSC_DIR=$PETSC_DIR PETSC_ARCH=$PETSC_ARCH all
-    #make -j 12 PETSC_DIR=$PETSC_DIR PETSC_ARCH=$PETSC_ARCH test
+    ./configure --PETSC_ARCH=$PETSC_ARCH --with-scalar-type=real --with-debugging=1 --with-mpi-dir=$MPI_INSTALL_DIR --download-metis=yes --download-metis-cmake-arguments="-DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_C_FLAGS=-D_GNU_SOURCE" --download-parmetis=yes --download-parmetis-cmake-arguments="-DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_C_FLAGS=-D_GNU_SOURCE" --download-superlu_dist=yes --download-superlu_dist-cmake-arguments="-DCMAKE_C_FLAGS='-std=gnu89'" --with-shared-libraries=yes --with-fortran-bindings=1 --with-cxx-dialect=C++11 --download-fblaslapack=1
+fi
+if [ ! -f "$PETSC_LIB" ]; then
+    if [ -f "$CONF_HEADER" ] && [ -f "$PETSC_VARIABLES" ]; then
+        echo ">>> PETSC CONFIGURATION FILES ARE PRESENT"
+        echo "     Header: $CONF_HEADER" 
+        echo "     var:    $PETSC_VARIABLES" 
+        echo ""
+        echo ">>> PATCHING GMAKEGEN PETSC"
+        echo ""
+
+    sed -i '/from sysconfig import _parse_makefile as parse_makefile/ {
+        r /dev/stdin
+        d
+    }' $LIB_DIR/petsc/config/gmakegen.py << 'EOF'
+try:
+    from sysconfig import _parse_makefile as parse_makefile
+except ImportError:
+    def parse_makefile(filename, vars=None):
+        import re
+        if vars is None:
+            vars = {}
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+        for line in lines:
+            if line.startswith('#') or not '=' in line:
+                continue
+            key, value = line.split('=', 1)
+            vars[key.strip()] = value.strip()
+        return vars
+EOF
+        echo ""
+        echo ">>> MAKE PETSC"
+        echo ""
+        make -j 12 PETSC_DIR=$PETSC_DIR PETSC_ARCH=$PETSC_ARCH all
+        #make -j 12 PETSC_DIR=$PETSC_DIR PETSC_ARCH=$PETSC_ARCH test
+
+        echo ""
+        echo ">>> IF MAKE FAIL PATCH THE FILE gmakegen.py"
+        echo ""
+
+    else
+        echo "Error: PETSC CONF Files missing cannot make"
+        exit 1
+    fi
 fi
 check_file "$PETSC_LIB"
 
@@ -228,29 +321,6 @@ check_file "$CGNS_LIB"
 # 
 # # 
 # 
-echo "------------------------ PYTHON ENV --------------------------"
-# Check if environment exists
-if [ ! -d "$PYENV_DIR" ]; then
-    echo "[INFO] Python environment not found, creating it..."
-    python -m venv "$PYENV_DIR"
-    if [ $? -ne 0 ]; then
-        echo "[FAIL] Failed to create Python environment at $PYENV_DIR"
-        rm -rf "$PYENV_DIR"
-        exit 1
-    fi
-fi
-#  Activate environment
-source "$PYENV_DIR/bin/activate"
-if [ $? -ne 0 ]; then
-    echo "[FAIL] Failed to activate Python environment"
-    exit 1
-fi
-echo "[ OK ] Python environment activated at $PYENV_DIR"
-
-
-echo "------------------------ PYTHON --------------------------"
-pip install numpy==1.26
-pip install scipy==1.15
 
 echo "-------------------------- PYSPLINE -------------------------"
 PYSPLINE_LIB=$LIB_DIR/pyspline/lib/libspline.a
@@ -329,10 +399,6 @@ check_file "$PYHYP_LIB"
 echo "---------------------- PYHYP TEST -------------------------"
 python $LIB_DIR/pyhyp/examples/naca0012/naca0012_euler.py
 check_file $LIB_DIR/pyhyp/examples/naca0012/naca0012_euler.cgns
-
-
-
-
 # 
 # 
 ## testflo -v
