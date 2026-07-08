@@ -10,6 +10,7 @@ import welib.weio as weio
 # db = db.query('airfoil!="L303"') # No geometry for L303
 # airfoil_names = db['airfoil'].unique()
 
+# --- NAWEA
 airfoil_dir ='airfoils_data/coords_meshed_nawea'
 mesh_dir    ='_meshes/'
 db = DataFrameDatabase(configs= weio.read('airfoils_data/DB_NAWEA_configs.csv').toDataFrame())

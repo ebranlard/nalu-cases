@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import glob
+import welib.weio as weio
 from nalulib.tools.dataframe_database import DataFrameDatabase
 from nalulib.nalu_input import NALUInputFile
 from nalulib.nalu_aseq import nalu_aseq
@@ -9,9 +10,17 @@ from nalulib.exodus_rotate import exo_rotate
 from nalulib.exodus_quads2hex import exo_zextrude
 from helper_functions import airfoil2configStat
 
-db = DataFrameDatabase('experiments/DB_all_stat.pkl')
-db = db.query('airfoil!="L303"') # No geometry for L303
-airfoil_names_db = db['airfoil'].unique()
+# --- Torque
+# db = DataFrameDatabase('experiments/DB_all_stat.pkl')
+# db = db.query('airfoil!="L303"') # No geometry for L303
+# airfoil_names_db = db['airfoil'].unique()
+
+# --- NAWEA
+case_dir    ='cases_polar2d_nawea'
+db = DataFrameDatabase(configs= weio.read('airfoils_data/DB_NAWEA_configs.csv').toDataFrame())
+airfoil_names = db['airfoil'].unique().tolist()
+print(db)
+
 
 # --- Main inputs
 submit=False
@@ -20,14 +29,12 @@ aseq = np.arange(-20, 25+3/2, 1)
 one_job = False
 nT_steady = 200  # leads to approx 10k time steps
 
-airfoil_names = []
-airfoil_names += ['S809'] 
-# airfoil_names += airfoil_names_db
-airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
+# airfoil_names = []
+# airfoil_names += ['S809'] 
+# airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
 
-mesh_dir    ='meshes'
-case_dir    ='cases_polar'
-nalu_template ='_templates/airfoil_name/input_2d_rans.yaml'
+mesh_dir    ='_meshes'
+nalu_template ='_templates/airfoil_name/input_2d_rans_fully_turb.yaml'
 current_path = os.getcwd()
 mem=None
 nodes=1
@@ -68,7 +75,8 @@ for ia, airfoil_name in enumerate(airfoil_names):
     print('----------------------------------------------------------------------')
     config, db_arf = airfoil2configStat(airfoil_name, db)
     Reynolds = config['Reynolds']
-    print('Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
+    print('>>> config', config)
+    print('>>> Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
 
     for iRe, re in enumerate(Reynolds):
         print(f'{f"Re={re:.2f}":-^70}')

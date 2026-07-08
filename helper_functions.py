@@ -48,6 +48,8 @@ def airfoil2configStat(airfoil_name, db, verbose=False):
     config['Reynolds'] = db_arf['Re'].round(2).sort_values().unique()
     for k,v in config_db.items():
         if isinstance(v, (int, float)):
+            if np.isnan(v):
+                raise Exception('Value is NaN:', k)
             if not np.isnan(v) and k not in ['Re']:
                 print(f'Setting {k:25s}={v}')
                 if isinstance(v, int):
@@ -57,7 +59,6 @@ def airfoil2configStat(airfoil_name, db, verbose=False):
 
         else:
             config[k] = v
-
 
     return config, db_arf
 
