@@ -3,31 +3,25 @@ import numpy as np
 import glob
 from nalulib import pyhyp
 from nalulib.tools.dataframe_database import DataFrameDatabase
+import welib.weio as weio
 
-airfoil_dir ='airfoil_meshes'
-mesh_dir    ='meshes'
 
-# db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
-# db = db.select({'Roughness':'Clean'})
+# db = DataFrameDatabase('experiments/DB_all_stat.pkl')
 # db = db.query('airfoil!="L303"') # No geometry for L303
-# airfoil_names = db.configs['airfoil'].unique()
+# airfoil_names = db['airfoil'].unique()
 
-db = DataFrameDatabase('experiments/DB_all_stat.pkl')
-db = db.query('airfoil!="L303"') # No geometry for L303
-airfoil_names_db = db['airfoil'].unique()
+airfoil_dir ='airfoils_data/coords_meshed_nawea'
+mesh_dir    ='_meshes/'
+db = DataFrameDatabase(configs= weio.read('airfoils_data/DB_NAWEA_configs.csv').toDataFrame())
+airfoil_names = db['airfoil'].unique().tolist()
+print(db)
 
-
-airfoil_names = []
-airfoil_names += ['S809'] 
-# airfoil_names += airfoil_names_db
-airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
-
-
-l_res=600
-
-# Reynolds = [0.1, 0.5, 0.75, 1, 2, 5, 10] # Milliions
-#Reynolds = [1] # Milliions
-
+# 
+# airfoil_names = []
+# #airfoil_names += ['S809'] 
+# #airfoil_names += airfoil_names_db
+# #airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
+# airfoil_names += ['du00-w-212']
 
 # --- Grids from test cases, reproduced with pyhyp
 # Background                       30 (range = 60)
@@ -57,7 +51,7 @@ for airfoil_name in airfoil_names:
     print('----------------------------------------------------------------------')
     print(f'{airfoil_name:-^70}')
     print('----------------------------------------------------------------------')
-    input_file = os.path.join(airfoil_dir, f'{airfoil_name}_l{l_res}.csv')
+    input_file = os.path.join(airfoil_dir, f'{airfoil_name}_l600.csv')
     print('Input file:', input_file)
 
     db_arf = db.select({'airfoil':airfoil_name})
@@ -69,6 +63,7 @@ for airfoil_name in airfoil_names:
         output_file = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
         if not os.path.exists(output_file):
             print(f'Creating mesh for {airfoil_name} with Re={re}M, N={N}, y+={yplus}')
+            pyhyp(input_file=input_file, output_file=output_file, re=re*1e6, marchDist=marchDist, N=N, yplus=yplus, verbose=True)
             try:
                 pyhyp(input_file=input_file, output_file=output_file, re=re*1e6, marchDist=marchDist, N=N, yplus=yplus, verbose=True)
             except:

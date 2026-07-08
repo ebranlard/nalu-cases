@@ -27,10 +27,10 @@ def airfoil2configStat(airfoil_name, db, verbose=False):
     config={}
     config['airfoil']                  = airfoil_name
     config['chord']                    = 1
-    config['density']                  = 1.2
-    config['viscosity']                = 9.0e-06 # This is mu, not nu
-    config['specific_dissipation_rate']= 114.54981120000002
-    config['turbulent_ke']             = 0.0013020495206400003
+#     config['density']                  = 1.2
+#     config['viscosity']                = 9.0e-06 # This is mu, not nu
+#     config['specific_dissipation_rate']= 114.54981120000002
+#     config['turbulent_ke']             = 0.0013020495206400003
     config['dt_fact']                  = 0.02
 
     # --- KEEP ME
