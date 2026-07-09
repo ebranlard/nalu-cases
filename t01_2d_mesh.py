@@ -2,8 +2,7 @@ import os
 import numpy as np
 import glob
 from nalulib import pyhyp
-from nalulib.tools.dataframe_database import DataFrameDatabase
-import welib.weio as weio
+from nalulib.weio.csv_file import CSVFile
 
 
 # db = DataFrameDatabase('experiments/DB_all_stat.pkl')
@@ -13,9 +12,8 @@ import welib.weio as weio
 # --- NAWEA
 airfoil_dir ='airfoils_data/coords_meshed_nawea'
 mesh_dir    ='_meshes/'
-db = DataFrameDatabase(configs= weio.read('airfoils_data/DB_NAWEA_configs.csv').toDataFrame())
-airfoil_names = db['airfoil'].unique().tolist()
-print(db)
+cases = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
+airfoil_names = cases['airfoil'].unique().tolist()
 
 # 
 # airfoil_names = []
@@ -55,8 +53,8 @@ for airfoil_name in airfoil_names:
     input_file = os.path.join(airfoil_dir, f'{airfoil_name}_l600.csv')
     print('Input file:', input_file)
 
-    db_arf = db.select({'airfoil':airfoil_name})
-    Reynolds = db_arf['Re'].round(2).sort_values().unique()
+    cases_arf = cases.query("airfoil == @airfoil_name")
+    Reynolds = cases_arf['Re'].round(2).sort_values().unique()
     print('Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
 
     for re in Reynolds:

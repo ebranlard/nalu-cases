@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import glob
-import welib.weio as weio
+from nalulib.weio.csv_file import CSVFile
 from nalulib.tools.dataframe_database import DataFrameDatabase
 from nalulib.nalu_input import NALUInputFile
 from nalulib.nalu_aseq import nalu_aseq
@@ -17,9 +17,10 @@ from helper_functions import airfoil2configStat
 
 # --- NAWEA
 case_dir    ='cases_polar2d_nawea'
-db = DataFrameDatabase(configs= weio.read('airfoils_data/DB_NAWEA_configs.csv').toDataFrame())
-airfoil_names = db['airfoil'].unique().tolist()
-print(db)
+cases = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
+airfoil_names = cases['airfoil'].unique().tolist()
+# airfoil_names = ['naca0018']
+print(cases)
 
 
 # --- Main inputs
@@ -73,7 +74,7 @@ for ia, airfoil_name in enumerate(airfoil_names):
     print('\n----------------------------------------------------------------------')
     print(f'{airfoil_name:-^70}')
     print('----------------------------------------------------------------------')
-    config, db_arf = airfoil2configStat(airfoil_name, db)
+    config, _ = airfoil2configStat(airfoil_name, cases)
     Reynolds = config['Reynolds']
     print('>>> config', config)
     print('>>> Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
@@ -160,6 +161,6 @@ for ia, airfoil_name in enumerate(airfoil_names):
                 f.write(f'{prefix}{bb}\n')
         print('SBatch:    ', sbatch_file)
 
-        if iRe==0 and len(Reynolds)>1:
-            print('[WARN] STOPPING AT ONE REYNOLDS')
-            break
+        #if iRe==0 and len(Reynolds)>1:
+        #    print('[WARN] STOPPING AT ONE REYNOLDS')
+        #    break

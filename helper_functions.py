@@ -16,6 +16,8 @@ from system_dynamics import tf_from_step, tfestimate, tfestimate_stitched
 from system_dynamics import cycle_mag_phase_fit, tf_from_cycle
 from ua import get_analytical_tf, compute_bl_response
 
+from nalulib.tools.dataframe_database import DataFrameDatabase
+
 
 try:
     from welib.tools.colors import python_colors
@@ -23,6 +25,7 @@ except:
     pass
 
 def airfoil2configStat(airfoil_name, db, verbose=False):
+
     # Current baseline...
     config={}
     config['airfoil']                  = airfoil_name
@@ -41,8 +44,16 @@ def airfoil2configStat(airfoil_name, db, verbose=False):
     #config['specific_dissipation_rate'] = 460.34999999999997
     #config['turbulent_ke']              = 0.00392448375
 
-    db_arf = db.select({'airfoil':airfoil_name})
-    config_db = db_arf.common_config
+    if isinstance(db, DataFrameDatabase):
+        db_arf = db.select({'airfoil':airfoil_name})
+        config_db = db_arf.common_config
+    else:
+        db_arf = db.query("airfoil == @airfoil_name")
+        # Extract the common config (constant values)
+        #constant_columns = [col for col in db_arf.columns if db_arf[col].nunique(dropna=False) == 1]
+        #common_config = {col: db_af[col].iloc[0] for col in constant_columns}
+        config_db = {col: db_arf[col].iloc[0] for col in db_arf.columns if db_arf[col].nunique(dropna=False) == 1}
+
     if verbose:
         print('Config_db', config_db)
     config['Reynolds'] = db_arf['Re'].round(2).sort_values().unique()

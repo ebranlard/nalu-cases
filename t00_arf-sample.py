@@ -12,10 +12,8 @@ import os
 import numpy as np
 import glob
 import matplotlib.pyplot as plt
-import welib.weio as weio
-# from nalulib import mesh_airfoil # arf_mesh
 from nalulib.airfoil_mesher import mesh_airfoil # arf_mesh
-from nalulib.tools.dataframe_database import DataFrameDatabase
+from nalulib.weio.csv_file import CSVFile
 
 
 # --- Remeshing inputs:
@@ -39,8 +37,8 @@ a_hyp = 3
 # --- NAWEA 
 airfoil_dir     ='airfoils_data/coords_raw_nawea/'
 airfoil_out_dir ='airfoils_data/coords_meshed_nawea/'
-db = DataFrameDatabase(configs= weio.read('airfoils_data/DB_NAWEA_configs.csv').toDataFrame())
-airfoil_names = db['airfoil'].unique().tolist()
+cases = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
+airfoil_names = cases['airfoil'].unique().tolist()
 suffix='_coords'
 TE_TYPE='sharp' # TODO need to implement an equispacing based on last spacing of upper or lower surface
 

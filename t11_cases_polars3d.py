@@ -1,18 +1,23 @@
 import os
 import numpy as np
 import glob
-from nalulib.tools.dataframe_database import DataFrameDatabase
+from nalulib.weio.csv_file import CSVFile
 from nalulib.nalu_input import NALUInputFile
 from nalulib.nalu_aseq import nalu_aseq
-from nalulib.nalu_batch import nalu_batch
-from nalulib.exodus_rotate import exo_rotate
 from nalulib.exodus_quads2hex import exo_zextrude
 from helper_functions import airfoil2configStat
 
-db = DataFrameDatabase('experiments/DB_all_stat.pkl')
-db = db.query('airfoil!="L303"') # No geometry for L303
-airfoil_names = db.configs['airfoil'].unique()
+# --- Torque
+# db = DataFrameDatabase('experiments/DB_all_stat.pkl')
+# db = db.query('airfoil!="L303"') # No geometry for L303
+# airfoil_names = db.configs['airfoil'].unique()
+# case_dir_base = 'cases_polar3d'
 
+# --- NAWEA
+mesh_dir      = '_meshes'
+case_dir_base = 'cases_polar3d_nawea'
+cases = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
+airfoil_names = cases['airfoil'].unique().tolist()
 
 # --- Main inputs
 submit=False
@@ -20,21 +25,18 @@ nT_steady=60
 SS_WING_PP=False
 zSpan = 4.0
 
-airfoil_names = []
-airfoil_names += ['S809'] 
-# airfoil_names += airfoil_names_db
+# airfoil_names = []
+# airfoil_names += ['S809'] 
 # airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
 
-for nSpan in [4, 24, 121]:
-    aseq = np.arange(-5, 25+3/2, 2.5)
-    #aseq = np.arange(-5, 20+3/2, 5)
+for nSpan in [24]:
+    #aseq = np.arange(-5, 25+3/2, 2.5)
+    aseq = np.arange(-5, 20+3/2, 5)
     #aseq = np.arange(-20, 25+3/2, 5)
     #aseq = np.arange(-2, 3+3/2, 1)
     one_job = False
 
-
-    mesh_dir    ='meshes'
-    case_dir    ='cases_polar3d_z{}_n{}'.format(int(zSpan), nSpan)
+    case_dir    = case_dir_base + '_z{}_n{}'.format(int(zSpan), nSpan)
     if SS_WING_PP:
         nalu_template ='_templates/airfoil_name/input_pp.yaml'
     else:
@@ -45,10 +47,10 @@ for nSpan in [4, 24, 121]:
     ntasks=None
     if 'ebranlard' in current_path: # Unity
         cluster = 'unity'
-        batch_template ='_templates/submit-unity.sh'
+        batch_template ='_templates/submit-unity_n1.sh'
         ntasks=92 #TODO TODO Unity
-        hours={4:16, 121:48}[nSpan]
-        nodes={4:1 , 121:1}[nSpan]
+        hours={4:16, 24:30, 121:48}[nSpan]
+        nodes={4:1 , 24:1 , 121:1}[nSpan]
     elif 'ebranlar' in current_path: # Kestrel
         cluster = 'kestrel'
         batch_template ='_templates/submit-kestrel.sh'
@@ -73,10 +75,10 @@ for nSpan in [4, 24, 121]:
     print(f'airfoil_names: {airfoil_names}')
 
 
-    background_3d = './meshes/background_n{}.exo'.format(nSpan)
+    background_3d = './_meshes/background_n{}.exo'.format(nSpan)
 
     if not os.path.exists(background_3d):
-        background_3d_n1 = './meshes/background_n1.exo'
+        background_3d_n1 = './_meshes/background_n1.exo'
         exo_zextrude(background_3d_n1, background_3d, nSpan=nSpan, zSpan=zSpan, zoffset=0.0, verbose=True, airfoil2wing=False, ss_wing_pp=SS_WING_PP, profiler=False, ss_suffix='_bg')
 
 
@@ -87,7 +89,7 @@ for nSpan in [4, 24, 121]:
         print('\n----------------------------------------------------------------------')
         print(f'{airfoil_name:-^70}')
         print('----------------------------------------------------------------------')
-        config, db_arf = airfoil2configStat(airfoil_name, db)
+        config, _ = airfoil2configStat(airfoil_name, cases)
         Reynolds = config['Reynolds']
         print('Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
 
