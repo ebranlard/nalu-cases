@@ -106,7 +106,7 @@ airfoil_names = db.configs['airfoil'].unique()
 # airfoil_names =  list(airfoil_names) + ['du00-w2-212', 'nlf1-0416'] 
 # airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
 airfoil_names = ['S809']
-airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
+#airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
 # airfoil_names = ['nlf1-0416']
 # airfoil_names = ['du00-w-212']
 
@@ -154,7 +154,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
     T = chord/U*nT_steady
 
 
-    basename_ReMean = basename+'_'+'re{:04.1f}_mean{:02d}'.format(re, int(alpha_mean))
+    basename_ReMean = basename+'_'+'re{:05.2f}_mean{:02d}'.format(re, int(alpha_mean))
     basename = PREFIX+basename_ReMean+'_'+'A{:02d}'.format(int(amplitude))+SUFIX
     yaml_file = os.path.join(sim_dir, basename+'.yaml')
 
@@ -262,7 +262,8 @@ for ia, airfoil_name in enumerate(airfoil_names):
     db_arf = db.select({'airfoil':airfoil_name})
 
     Reynolds = db_arf.configs['Re'].round(2).unique()
-    RE_expected = np.array([0.8, 1.0, 1.2, 1.4, 1.5, 3.0]) # 0.75, 1.0, 1.25, 1.3, 1.4, 1.5]
+    #RE_expected = np.array([0.8, 1.0, 1.2, 1.4, 1.5, 3.0]) # 0.75, 1.0, 1.25, 1.3, 1.4, 1.5]
+    RE_expected = np.array([0.75, 1.0, 1.2, 1.4, 1.5, 3.0]) # 0.75, 1.0, 1.25, 1.3, 1.4, 1.5]
     RE = []
     for re in Reynolds:
         i=np.argmin(np.abs(re- RE_expected))
@@ -283,14 +284,14 @@ for ia, airfoil_name in enumerate(airfoil_names):
         if airfoil_name == 'du00-w-212':
             Reynolds=[3]; re=Reynolds[0]
             #mesh_file_2d = './du00-w-212/grids/du00w212_re3M_y03_aoa0_n1.exo'
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
+            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
             density=1.225
             viscosity=1.392416666666667e-05 # mu
             #dt_fact=0.55
         elif airfoil_name == 'nlf1-0416':
             Reynolds=[4]; re=Reynolds[0]
             #mesh_file_2d = './nl1-0416/grids/nlf1-0416_re4M_y2_aoa0_n1.exo'
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
+            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
             density=1.225
             viscosity=1.0443125000000002e-05 # mu
             specific_dissipation_rate= 460.34999999999997
@@ -301,7 +302,7 @@ for ia, airfoil_name in enumerate(airfoil_names):
         elif airfoil_name == 'ffa-w3-211':
             Reynolds=[10]; re=Reynolds[0]
             #mesh_file_2d = './ffa/grids/ffa_w3_211_near_body_aoa0_n1.exo'
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
+            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
         else:
             raise NotImplementedError(airfoil_name)
 
@@ -315,7 +316,8 @@ for ia, airfoil_name in enumerate(airfoil_names):
 
     nalu_batches = []
     for iRe, re in enumerate(Reynolds):
-        mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:04.1f}M_y{yplus}mu.exo')
+        mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
+        print('re',re, mesh_file_2d)
         for ia, alpha_mean in enumerate(Alpha_mean):
             for iA, amplitude in enumerate(Amplitudes):
                 yml, batch = create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3d, yml, sim_dir, basename=airfoil_name, nSpan=nSpan, 
