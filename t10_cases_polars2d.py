@@ -14,11 +14,17 @@ from helper_functions import airfoil2configStat
 # db = DataFrameDatabase('experiments/DB_all_stat.pkl')
 # db = db.query('airfoil!="L303"') # No geometry for L303
 # airfoil_names_db = db['airfoil'].unique()
+#LL = 600
+#MM = 150
+#yplus=0.1
 
 # --- NAWEA
 case_dir    ='cases_polar2d_nawea'
 cases = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
+LL = 500
+MM = 150
+yplus=1
 # airfoil_names = ['naca0018']
 print(cases)
 
@@ -57,8 +63,6 @@ else:
     hours=2
 
 # TODO TI
-N = 150
-yplus=0.1
 
 print(f'{f"SETUP":-^70}')
 print(f'cluster      : {cluster}')
@@ -83,7 +87,7 @@ for ia, airfoil_name in enumerate(airfoil_names):
         print(f'{f"Re={re:.2f}":-^70}')
 
         # --- Main paths and job names
-        mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
+        mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_l{LL}_m{MM}_n1_re{re:05.2f}M_y{yplus}mu.exo')
         if not os.path.exists(mesh_file_2d):
             raise Exception('[WARN] Mesh not found: ', mesh_file_2d)
 

@@ -36,9 +36,10 @@ airfoil_names = cases['airfoil'].unique().tolist()
 # S809          -n 145 --marchDist 75	--re 1e6    --yplus 0.1 -i S809_l600.csv 
 # S809          -n 145 --marchDist 75	--re 0.1e6  --yplus 0.1 -i S809_l600.csv 
 
-N = 150
+LL = 500
+MM = 150
+yplus=1
 marchDist = 25
-yplus=0.1
 
 # create mesh dir
 if not os.path.exists(mesh_dir):
@@ -50,7 +51,7 @@ for airfoil_name in airfoil_names:
     print('----------------------------------------------------------------------')
     print(f'{airfoil_name:-^70}')
     print('----------------------------------------------------------------------')
-    input_file = os.path.join(airfoil_dir, f'{airfoil_name}_l600.csv')
+    input_file = os.path.join(airfoil_dir, f'{airfoil_name}_l{LL}.csv')
     print('Input file:', input_file)
 
     cases_arf = cases.query("airfoil == @airfoil_name")
@@ -59,19 +60,19 @@ for airfoil_name in airfoil_names:
 
     for re in Reynolds:
         print(f'---------------------------- Re={re}')
-        output_file = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
+        output_file = os.path.join(mesh_dir, f'{airfoil_name}__l{LL}_m{MM}_n1_re{re:05.2f}M_y{yplus}mu.exo')
         if not os.path.exists(output_file):
-            print(f'Creating mesh for {airfoil_name} with Re={re}M, N={N}, y+={yplus}')
-            pyhyp(input_file=input_file, output_file=output_file, re=re*1e6, marchDist=marchDist, N=N, yplus=yplus, verbose=True)
+            print(f'Creating mesh for {airfoil_name} with Re={re}M, M={MM}, y+={yplus}')
+            pyhyp(input_file=input_file, output_file=output_file, re=re*1e6, marchDist=marchDist, N=MM, yplus=yplus, verbose=True)
             try:
-                pyhyp(input_file=input_file, output_file=output_file, re=re*1e6, marchDist=marchDist, N=N, yplus=yplus, verbose=True)
+                pyhyp(input_file=input_file, output_file=output_file, re=re*1e6, marchDist=marchDist, N=MM, yplus=yplus, verbose=True)
             except:
-                print(f'Failed to create mesh for {airfoil_name} with Re={re}M, N={N}, y+={yplus}')
-                FAILED.append((airfoil_name, re, N, yplus))	
+                print(f'Failed to create mesh for {airfoil_name} with Re={re}M, M={MM}, y+={yplus}')
+                FAILED.append((airfoil_name, re, MM, yplus))	
         else:
             print(f'[SKIP] {airfoil_name} {re}')
 
 #         import pdb; pdb.set_trace()
 
 for failed in FAILED:
-	print(f'Failed to create mesh for {failed[0]} with Re={failed[1]}M, N={failed[2]}, y+={failed[3]}')
+	print(f'Failed to create mesh for {failed[0]} with Re={failed[1]}M, M={failed[2]}, y+={failed[3]}')

@@ -12,12 +12,18 @@ from helper_functions import airfoil2configStat
 # db = db.query('airfoil!="L303"') # No geometry for L303
 # airfoil_names = db.configs['airfoil'].unique()
 # case_dir_base = 'cases_polar3d'
+#LL = 600
+#MM = 150
+#yplus=0.1
 
 # --- NAWEA
 mesh_dir      = '_meshes'
 case_dir_base = 'cases_polar3d_nawea'
 cases = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
+LL = 500
+MM = 150
+yplus=1
 
 # --- Main inputs
 submit=False
@@ -63,9 +69,6 @@ for nSpan in [24]:
         batch_template ='_templates/submit-bash.sh'
         hours=2
 
-    # TODO TI
-    N = 150
-    yplus=0.1
 
     # --- SETUP
     print(f'{f"SETUP":-^70}')
@@ -97,7 +100,7 @@ for nSpan in [24]:
             print(f'{f"Re={re:.2f}":-^70}')
 
             # --- Main paths and job names           
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
+            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_l{LL}_l{LL}_m{MM}_n1_re{re:05.2f}M_y{yplus}mu.exo')
             if not os.path.exists(mesh_file_2d):
                 raise Exception('[WARN] Mesh not found: ', mesh_file_2d)
 

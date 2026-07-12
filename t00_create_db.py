@@ -7,7 +7,7 @@ from nalulib.weio.csv_file import CSVFile
 # --- AMR Wind Benchmark cases 
 # --------------------------------------------------------------------------------{
 def create_amrbench_db():
-    db_stat = DataFrameDatabase(name='ARMBench')
+    db = DataFrameDatabase(name='ARMBench')
 
     # --- 
     # Values from AMRWind Benchmark
@@ -15,10 +15,10 @@ def create_amrbench_db():
     config={'airfoil':airfoil_name, 'Re':3, 'density':1.225, 'viscosity':1.392416666666667e-05} # NOTE: viscosity is mu
     config['specific_dissipation_rate']= 114.54981120000002      # Values from AMR Wind Bencmark
     config['turbulent_ke']             = 0.0013020495206400003 
-    db_stat.insert(config|{'Setup':'CFD2U_ref_lam'} ,  CSVFile('./airfoil_sims/du00-w-212/ref/cfd_re3M.csv').toDataFrame() )
-    db_stat.insert(config|{'Setup':'CFD2U_ref_turb'},  CSVFile('./airfoil_sims/du00-w-212/ref/cfd_re3M_turb.csv').toDataFrame() )
-    db_stat.insert(config|{'Setup':'EXP_turb'}      ,  CSVFile('./airfoil_sims/du00-w-212/ref/du00-w-212_re03.00M_EXP_turb.csv').toDataFrame() )
-    db_stat.insert(config|{'Setup':'EXP_lam'}       ,  CSVFile('./airfoil_sims/du00-w-212/ref/du00-w-212_re03.00M_EXP_lam_trans.csv').toDataFrame() )
+    db.insert(config|{'Setup':'CFD2U_ref_lam'} ,  CSVFile('./airfoil_sims/du00-w-212/ref/cfd_re3M.csv').toDataFrame() )
+    db.insert(config|{'Setup':'CFD2U_ref_turb'},  CSVFile('./airfoil_sims/du00-w-212/ref/cfd_re3M_turb.csv').toDataFrame() )
+    db.insert(config|{'Setup':'EXP_turb'}      ,  CSVFile('./airfoil_sims/du00-w-212/ref/du00-w-212_re03.00M_EXP_turb.csv').toDataFrame() )
+    db.insert(config|{'Setup':'EXP_lam'}       ,  CSVFile('./airfoil_sims/du00-w-212/ref/du00-w-212_re03.00M_EXP_lam_trans.csv').toDataFrame() )
 
     # --- 
     # Values from AMRWind Benchmark
@@ -26,21 +26,21 @@ def create_amrbench_db():
     config={'airfoil':airfoil_name, 'Re':4, 'density':1.225, 'viscosity':1.0443125000000002e-05} # NOTE: viscosity is mu
     config['specific_dissipation_rate'] = 460.34999999999997  # Values from AMR Wind Bencmark
     config['turbulent_ke']              = 0.00392448375  
-    db_stat.insert(config|{'Setup':'CFD2D_ref_lam'},  CSVFile('./airfoil_sims/nlf1-0416/ref/nlf1-0416_re04.00M_CFD2D_ref_rans_lam_trans.csv').toDataFrame())
-    db_stat.insert(config|{'Setup':'CFD2D_ref_turb'}, CSVFile('./airfoil_sims/nlf1-0416/ref/nlf1-0416_re04.00M_CFD2D_ref_rans_turb.csv').toDataFrame())
-    db_stat.insert(config|{'Setup':'EXP_turb'},       CSVFile('./airfoil_sims/nlf1-0416/ref/nlf1-0416_re04.00M_EXP_turb.csv').toDataFrame())
-    db_stat.insert(config|{'Setup':'EXP_lam'},        CSVFile('./airfoil_sims/nlf1-0416/ref/nlf1-0416_re04.00M_EXP_lam_trans.csv').toDataFrame())
-    print(db_stat)
+    db.insert(config|{'Setup':'CFD2D_ref_lam'},  CSVFile('./airfoil_sims/nlf1-0416/ref/nlf1-0416_re04.00M_CFD2D_ref_rans_lam_trans.csv').toDataFrame())
+    db.insert(config|{'Setup':'CFD2D_ref_turb'}, CSVFile('./airfoil_sims/nlf1-0416/ref/nlf1-0416_re04.00M_CFD2D_ref_rans_turb.csv').toDataFrame())
+    db.insert(config|{'Setup':'EXP_turb'},       CSVFile('./airfoil_sims/nlf1-0416/ref/nlf1-0416_re04.00M_EXP_turb.csv').toDataFrame())
+    db.insert(config|{'Setup':'EXP_lam'},        CSVFile('./airfoil_sims/nlf1-0416/ref/nlf1-0416_re04.00M_EXP_lam_trans.csv').toDataFrame())
+    print(db)
     # --- Save db
-    db_stat.save('./airfoils_data/DB_amrbench_stat.pkl')
-    return db_stat
+    db.save('./airfoils_data/DB_amrbench_stat.pkl')
+    return db
 
 
 # --------------------------------------------------------------------------------}
 # --- MISC
 # --------------------------------------------------------------------------------{
 def create_misc_db():
-    db_stat = DataFrameDatabase(name='Misc')
+    db = DataFrameDatabase(name='Misc')
     # --- 
     airfoil_name = 'ffa-w3-211'
     config={'airfoil':airfoil_name, 'Re':10}
@@ -48,13 +48,13 @@ def create_misc_db():
     config['viscosity']                = 9.0e-06 # This is mu   # TODO DUMMY VALUES
     config['specific_dissipation_rate']= 114.54981120000002     # TODO DUMMY VALUES
     config['turbulent_ke']             = 0.0013020495206400003  # TODO DUMMY VALUES
-    db_stat.insert(config|{'Setup':'none'}, pd.DataFrame())
+    db.insert(config|{'Setup':'none'}, pd.DataFrame())
 
-    print(db_stat)
+    print(db)
     # --- Save db
-    db_stat.save('./airfoils_data/DB_misc_stat.pkl')
+    db.save('./airfoils_data/DB_misc_stat.pkl')
 
-    return db_stat
+    return db
 
 
 def create_IEA_db():
@@ -72,7 +72,7 @@ def create_IEA_db():
                'ffa-w3-241'       : 16,
                'ffa-w3-211'       : 10}
 
-    db_iea = DataFrameDatabase(name='IEA')
+    db = DataFrameDatabase(name='IEA')
 
     for airfoil_name, re in arf_re.items():
         print(airfoil_name, re)
@@ -81,12 +81,44 @@ def create_IEA_db():
         df = CSVFile(f'./airfoils_data/IEA22/{airfoil_name}_polar.csv').toDataFrame()
         df.columns = ['Alpha_[deg]', 'Cl_[-]', 'Cd_[-]', 'Cm_[-]']
         df['Alpha_[deg]'] *=180/np.pi
-        db_iea.insert(config, df)
+        db.insert(config, df)
 
-    print(db_iea)
+    print(db)
     # print(db_stat.copy())
     # --- Save db
-    db_iea.save('./airfoils_data/DB_iea_stat.pkl')
+    db.save('./airfoils_data/DB_iea_stat.pkl')
+
+
+# --------------------------------------------------------------------------------}
+# --- NACA  
+# --------------------------------------------------------------------------------{
+def create_NACA_db():
+    import welib.weio as weio
+
+    db = DataFrameDatabase(name='NACA0018')
+
+    # --- NACA0018
+    # Read NACA0018 polars
+    pols = weio.read('airfoils_data/_naca/__NACA_0018_AllRe.dat')
+    dfs = pols.toDataFrame()
+    reynolds = pols.fixedfile.reynolds 
+
+    airfoil_name = 'naca0018'
+    config={'airfoil':airfoil_name, 'Re':np.nan, 'density':1.225, 'viscosity':1.392416666666667e-05} # NOTE: viscosity is mu
+    config['specific_dissipation_rate'] = 114.54981120000002     # TODO DUMMY VALUES
+    config['turbulent_ke']              = 0.0013020495206400003  # TODO DUMMY VALUES
+
+    for re in reynolds:
+        db.insert(config | {'Re':re, 'Setup':'Unknown'}, dfs['AFCoeff_Re{:.2f}'.format(re)])
+    print(db)
+    # --- Save db
+    db.save('./airfoils_data/DB_naca_stat.pkl')
+    return db
+
+
+
+
+
 
 def concat():
     # --- Load Static DBs
@@ -105,9 +137,10 @@ def concat():
     import pdb; pdb.set_trace()
 
 if __name__ == '__main__':
+    create_NACA_db()
     #create_IEA_db()
     #create_amrbench_db()
     #create_misc_db()
-    concat()
+    #concat()
 
     

@@ -33,7 +33,8 @@ out_dir       = '_results'+suffix
 cases         = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
 db            = DataFrameDatabase('airfoils_data/DB_iea_stat.pkl')
-# dbn            = DataFrameDatabase('airfoils_data/DB_iea_stat.pkl')
+dbn           = DataFrameDatabase('airfoils_data/DB_NACA_stat.pkl')
+db            = DataFrameDatabase.concatenate( (db, dbn))
 print(db)
 
 
@@ -43,12 +44,8 @@ figout_dir  = os.path.join(out_dir,'_figs/')
 case_dir_2d = os.path.join(out_dir,'cases_polar2d'+suffix)
 
 
-
-
-
-# 
 # airfoil_names =  list(airfoil_names) 
-airfoil_names =[]
+# airfoil_names =[]
 # # airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211'] + ['S809'] #  +  list(airfoil_names)
 # # airfoil_names = ['du00-w-212']
 # airfoil_names += ['S809']
@@ -60,7 +57,10 @@ airfoil_names =[]
 # airfoil_names +=['du00-w-212']
 # airfoil_names +=['nlf1-0416']
 # airfoil_names +=['ffa-w3-211']
-airfoil_names +=['naca0018']
+# airfoil_names +=['ffa-w3-301']
+# airfoil_names +=['ffa-w3-241']
+# airfoil_names +=['ffa-w3-360']
+# airfoil_names +=['naca0018']
 
 
 os.makedirs(polout_dir, exist_ok=True)
@@ -103,6 +103,7 @@ for airfoil_name in airfoil_names:
             elif 'Roughness' in db2.keys():
                 polars = db2.toDict('Roughness')
                 polars = {f"Exp {k}": v for k, v in polars.items()}
+            # --- Export polars to CSV
             if len(polars)>0:
                 print('Polars:   ', list(polars.keys()))
                 for k,pol in polars.items():
@@ -114,6 +115,8 @@ for airfoil_name in airfoil_names:
                         polfile = os.path.join(polout_dir, base+'_'+suffix+'.csv')
                         print('Writing:', polfile)
                         pol.to_csv(polfile, index=False) # <<<<<<<<<<<<<<<<<<< CSV EXPORT
+                        pol = pol[(pol['Alpha'] >= -50) & (pol['Alpha'] <= 50)]
+                        polars[k] = pol
 # 
 #         # --- CFD 3D polars 
 #         print('--- POLARS 3D')
@@ -153,8 +156,10 @@ for airfoil_name in airfoil_names:
         print('--- PLOT')
         ylim = None
 #         if airfoil_name =='S809':
-        ylim = [-1, 2]
-        fig = plot_polars(polars, verbose=True, ylim=ylim)
+        ylim  = [-1, 2]
+        xlimCd= [0, 0.3]
+        xlimAlpha= [-15, 30]
+        fig = plot_polars(polars, verbose=True, ylim=ylim, plotCm=airfoil_name!='naca0018', xlimCd=xlimCd, xlimAlpha=xlimAlpha)
         fig.suptitle(base.replace('_',' '))
         figfile = os.path.join(figout_dir, base+'.png')
         fig.savefig(figfile)
