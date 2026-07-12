@@ -100,7 +100,7 @@ for nSpan in [24]:
             print(f'{f"Re={re:.2f}":-^70}')
 
             # --- Main paths and job names           
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_l{LL}_l{LL}_m{MM}_n1_re{re:05.2f}M_y{yplus}mu.exo')
+            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}__l{LL}_l{LL}_m{MM}_n1_re{re:05.2f}M_y{yplus}mu.exo')
             if not os.path.exists(mesh_file_2d):
                 raise Exception('[WARN] Mesh not found: ', mesh_file_2d)
 
