@@ -60,12 +60,12 @@ for nSpan in [2]:
         cluster = 'unity'
         batch_template ='_templates/submit-unity_n1.sh'
         ntasks=92 #TODO TODO Unity
-        hours={4:16, 24:30, 121:48}[nSpan]
-        nodes={4:1 , 24:1 , 121:1}[nSpan]
+        hours={2:2, 4:16, 24:30, 121:48}[nSpan]
+        nodes={2:1, 4:1 , 24:1 , 121:1}[nSpan]
     elif 'ebranlar' in current_path: # Kestrel
         cluster = 'kestrel'
         batch_template ='_templates/submit-kestrel.sh'
-        hours={2:2 ,4:3, 24:8, 121:48}[nSpan]
+        hours={2:2, 4:3, 24:8, 121:48}[nSpan]
         nodes={2:1, 4:1, 24:1, 121:1}[nSpan]
     else:
         #cluster = 'local'

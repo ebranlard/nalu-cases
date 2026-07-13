@@ -69,6 +69,7 @@ os.makedirs(polout_dir, exist_ok=True)
 os.makedirs(figout_dir, exist_ok=True)
 
 case_dir_n = {
+        2:  os.path.join(out_dir, f'cases_polar3d{suffix}_dz0.03_n2/'),
         4:  os.path.join(out_dir, f'cases_polar3d{suffix}_dz0.03_n4/'),
 #         24: os.path.join(out_dir, f'cases_polar3d{suffix}_dz0.03_n24/'),
 #         121:os.path.join(out_dir, f'cases_polar3d{suffix}_dz0.03_n121/'),
