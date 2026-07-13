@@ -189,7 +189,6 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
     else:
         print('[INFO] Mesh exists')
 
-
     # --- Change yaml file
     yml = yml_in.copy()
     # Shortcuts 
@@ -266,6 +265,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
 
 
 # --- Loop through airfoils and create meshes
+nalu_batches = []
 for ia, airfoil_name in enumerate(airfoil_names):
     print(f'---------------------------- {airfoil_name} ------------------------')
 
@@ -276,7 +276,6 @@ for ia, airfoil_name in enumerate(airfoil_names):
     if not os.path.exists(sim_dir):
         os.makedirs(sim_dir)
 
-    nalu_batches = []
     for iRe, re in enumerate(Reynolds):
         mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}__l{LL}_m{MM}_n1_re{re:05.2f}M_y{yplus}mu.exo')
         print('re',re, mesh_file_2d)
@@ -304,3 +303,13 @@ for ia, airfoil_name in enumerate(airfoil_names):
     #        f.write(f'{prefix}{bb}\n')
     #print('SBatch:    ', sbatch_file)
 
+# --- Batch submit all
+sbatch_file = os.path.join(case_dir, '_submit_all.sh')
+with open(sbatch_file, 'w', newline="\n") as f:
+    for b in nalu_batches:
+        bb = os.path.relpath(b, case_dir)
+        reldir = os.path.dirname(bb)
+        name   = os.path.basename(bb)
+        command = f'cd {reldir:25s} && sbatch {name:>50s}    && cd ..\n'
+        print(command)
+        f.write(command)

@@ -74,6 +74,7 @@ print(f'airfoil_names: {airfoil_names}')
 yml_template = NALUInputFile(nalu_template)
 
 # --- Loop through airfoils and create meshes
+sim_dirs=[]
 for ia, airfoil_name in enumerate(airfoil_names):
     print('\n----------------------------------------------------------------------')
     print(f'{airfoil_name:-^70}')
@@ -93,6 +94,7 @@ for ia, airfoil_name in enumerate(airfoil_names):
 
         jobname = airfoil_name + '_re{:05.2f}M'.format(re)
         sim_dir = os.path.join(case_dir, jobname)
+        sim_dirs.append(sim_dir)
         print('sim_dir:   ', sim_dir)
         if not os.path.exists(sim_dir):
             os.makedirs(sim_dir)
@@ -168,3 +170,12 @@ for ia, airfoil_name in enumerate(airfoil_names):
         #if iRe==0 and len(Reynolds)>1:
         #    print('[WARN] STOPPING AT ONE REYNOLDS')
         #    break
+
+# --- Batch submit all
+sbatch_file = os.path.join(case_dir, '_submit_all.sh')
+with open(sbatch_file, 'w', newline="\n") as f:
+    for sd in sim_dirs:
+        reldir = os.path.relpath(sd, case_dir)
+        command = f'cd {reldir:25s} && bash _sbatch_all.sh && cd ..\n'
+        print(command)
+        f.write(command)

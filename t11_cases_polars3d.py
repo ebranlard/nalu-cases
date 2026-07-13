@@ -37,6 +37,7 @@ dz = 0.03
 # airfoil_names += ['S809'] 
 # airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
 
+sim_dirs=[]
 for nSpan in [4]:
     #aseq = np.arange(-5, 25+3/2, 2.5)
     aseq = np.arange(-5, 20+3/2, 5)
@@ -109,6 +110,7 @@ for nSpan in [4]:
 
             jobname = airfoil_name + '_re{:05.2f}M'.format(re)
             sim_dir = os.path.join(case_dir, jobname)
+            sim_dirs.append(sim_dir)
             print('sim_dir:   ', sim_dir)
             if not os.path.exists(sim_dir):
                 os.makedirs(sim_dir)
@@ -197,3 +199,13 @@ for nSpan in [4]:
             if iRe==0 and len(Reynolds)>1:
                 print('[WARN] STOPPING AT ONE REYNOLDS')
                 break
+
+
+# --- Batch submit all
+sbatch_file = os.path.join(case_dir, '_submit_all.sh')
+with open(sbatch_file, 'w', newline="\n") as f:
+    for sd in sim_dirs:
+        reldir = os.path.relpath(sd, case_dir)
+        command = f'cd {reldir:25s} && bash _sbatch_all.sh && cd ..\n'
+        print(command)
+        f.write(command)
