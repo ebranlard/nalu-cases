@@ -36,9 +36,10 @@ dz = 0.03
 # airfoil_names = []
 # airfoil_names += ['S809'] 
 # airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
+# airfoil_names += ['snl-ffa-w3-560fb', 'snl-ffa-w3-480fb', 'snl-ffa-w3-420fb']
 
 sim_dirs=[]
-for nSpan in [4]:
+for nSpan in [2]:
     #aseq = np.arange(-5, 25+3/2, 2.5)
     aseq = np.arange(-5, 20+3/2, 5)
     #aseq = np.arange(-20, 25+3/2, 5)
@@ -64,8 +65,8 @@ for nSpan in [4]:
     elif 'ebranlar' in current_path: # Kestrel
         cluster = 'kestrel'
         batch_template ='_templates/submit-kestrel.sh'
-        hours={4:3, 24:8, 121:48}[nSpan]
-        nodes={4:1, 24:1, 121:1}[nSpan]
+        hours={2:2 ,4:3, 24:8, 121:48}[nSpan]
+        nodes={2:1, 4:1, 24:1, 121:1}[nSpan]
     else:
         #cluster = 'local'
         #batch_template =None
