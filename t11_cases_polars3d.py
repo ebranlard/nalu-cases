@@ -19,7 +19,7 @@ from helper_functions import airfoil2configStat
 # --- NAWEA
 mesh_dir      = '_meshes'
 case_dir_base = 'cases_polar3d_nawea'
-cases = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
+cases = CSVFile('airfoils_data/DB_NAWEA_configs_reduced.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
 LL = 500
 MM = 150

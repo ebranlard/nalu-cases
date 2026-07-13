@@ -30,7 +30,7 @@ suffix='_nawea'
 # --- NAWEA
 suffix        = '_nawea'
 out_dir       = '_results'+suffix
-cases         = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
+cases         = CSVFile('airfoils_data/DB_NAWEA_configs_reduced.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
 db            = DataFrameDatabase('airfoils_data/DB_iea_stat.pkl')
 dbn           = DataFrameDatabase('airfoils_data/DB_NACA_stat.pkl')

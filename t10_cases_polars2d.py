@@ -20,7 +20,7 @@ from helper_functions import airfoil2configStat
 
 # --- NAWEA
 case_dir    ='cases_polar2d_nawea'
-cases = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
+cases = CSVFile('airfoils_data/DB_NAWEA_configs_reduced.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
 LL = 500
 MM = 150
