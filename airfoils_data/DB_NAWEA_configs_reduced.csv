@@ -1,4 +1,7 @@
 airfoil,Roughness,Re,density,viscosity,specific_dissipation_rate,turbulent_ke,Setup
+snl-ffa-w3-560fb,Rough,10,1.225,1.81E-05,114.5498112,0.00130205,CFD2D_ref_Ellipsys
+snl-ffa-w3-480fb,Rough,8,1.225,1.81E-05,114.5498112,0.00130205,CFD2D_ref_Ellipsys
+snl-ffa-w3-420fb,Rough,10,1.225,1.81E-05,114.5498112,0.00130205,CFD2D_ref_Ellipsys
 fb90,Rough,10,1.225,1.81E-05,114.5498112,0.00130205,CFD2D_ref_Ellipsys
 fb60,Rough,10,1.225,1.81E-05,114.5498112,0.00130205,CFD2D_ref_Ellipsys
 ffa-w3-360,Rough,13,1.225,1.81E-05,114.5498112,0.00130205,CFD2D_ref_Ellipsys

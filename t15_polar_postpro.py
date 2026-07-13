@@ -36,6 +36,7 @@ db            = DataFrameDatabase('airfoils_data/DB_iea_stat.pkl')
 dbn           = DataFrameDatabase('airfoils_data/DB_NACA_stat.pkl')
 db            = DataFrameDatabase.concatenate( (db, dbn))
 print(db)
+dz = 0.03
 
 
 
@@ -45,7 +46,7 @@ case_dir_2d = os.path.join(out_dir,'cases_polar2d'+suffix)
 
 
 # airfoil_names =  list(airfoil_names) 
-airfoil_names =[]
+# airfoil_names =[]
 # # airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211'] + ['S809'] #  +  list(airfoil_names)
 # # airfoil_names = ['du00-w-212']
 # airfoil_names += ['S809']
@@ -61,16 +62,16 @@ airfoil_names =[]
 # airfoil_names +=['ffa-w3-241']
 # airfoil_names +=['ffa-w3-360']
 # airfoil_names +=['naca0018']
-airfoil_names +=['fb60']
+# airfoil_names +=['fb60']
 
 
 os.makedirs(polout_dir, exist_ok=True)
 os.makedirs(figout_dir, exist_ok=True)
 
 case_dir_n = {
-        4:  os.path.join(out_dir, f'cases_polar3d{suffix}_z4_n4/'),
-        24: os.path.join(out_dir, f'cases_polar3d{suffix}_z4_n24/'),
-        121:os.path.join(out_dir, f'cases_polar3d{suffix}_z4_n121/'),
+        4:  os.path.join(out_dir, f'cases_polar3d{suffix}_dz0.03_n4/'),
+#         24: os.path.join(out_dir, f'cases_polar3d{suffix}_dz0.03_n24/'),
+#         121:os.path.join(out_dir, f'cases_polar3d{suffix}_dz0.03_n121/'),
  }
 
 # --- Loop through airfoils
@@ -118,27 +119,26 @@ for airfoil_name in airfoil_names:
                         pol.to_csv(polfile, index=False) # <<<<<<<<<<<<<<<<<<< CSV EXPORT
                         pol = pol[(pol['Alpha'] >= -50) & (pol['Alpha'] <= 50)]
                         polars[k] = pol
-# 
-#         # --- CFD 3D polars 
-#         print('--- POLARS 3D')
-#         polars_3d={}
-#         for n, case_dir_3d in case_dir_n.items():
-#             sim_dir = os.path.join(case_dir_3d, base)
-#             yaml_file3d = os.path.join(sim_dir,'input_aoa00.0.yaml')
-#             polar_out3d = os.path.join(polout_dir, base+'_CFD3D_n{}.csv'.format(n)) #<<<<<<<<<<<<<<<<<<<<<<<<<<<<< CSV EXPORT
-#             pattern = os.path.join(sim_dir,'forces_pp*.csv')
-#             input_files_pp = glob.glob(pattern)
-#             if not os.path.exists(sim_dir):
-#                 raise Exception(f'Folder not found, {sim_dir}')
-#             try:
-#                 pattern = os.path.join(sim_dir,'forces_aoa*.csv')
-#                 dfp, dfss, _ = polar_postpro(pattern, yaml_file3d, polar_out = polar_out3d, use_ss=True, plot=False, verbose=False, span=4, cfd_ls='-', cfd_m='o')
-#             except FileNotFoundError as e:
-#                 FAIL('Not Combine Fail: FileNotFound', e)
-#                 continue
-#             polars_3d[f'CFD3D_n{n}'] = dfp
-# 
-#         polars = {**polars_3d, **polars}
+
+        # --- CFD 3D polars 
+        print('--- POLARS 3D')
+        polars_3d={}
+        for nSpan, case_dir_3d in case_dir_n.items():
+            sim_dir = os.path.join(case_dir_3d, base)
+            yaml_file3d = os.path.join(sim_dir,'input_aoa00.0.yaml')
+            polar_out3d = os.path.join(polout_dir, base+'_CFD3D_n{}.csv'.format(nSpan)) #<<<<<<<<<<<<<<<<<<<<<<<<<<<<< CSV EXPORT
+            zSpan = dz * nSpan
+            if not os.path.exists(sim_dir):
+                FAIL(f'Folder not found, {sim_dir}')
+                continue
+            try:
+                pattern = os.path.join(sim_dir,'forces_aoa*.csv')
+                dfp, dfss, _ = polar_postpro(pattern, yaml_file3d, polar_out = polar_out3d, use_ss=True, plot=False, verbose=False, span=dz*nSpan, cfd_ls='-', cfd_m='o')
+            except FileNotFoundError as e:
+                FAIL('Not Combine Fail: FileNotFound', e)
+                continue
+            polars_3d[f'CFD3D_n{nSpan}'] = dfp
+        polars = {**polars_3d, **polars}
 
         # --- CFD 2D polars 
         print('--- POLARS 2D')
