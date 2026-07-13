@@ -38,7 +38,7 @@ airfoil_names = cases['airfoil'].unique().tolist()
 
 LL = 500
 MM = 150
-yplus=1
+yplus=0.3
 marchDist = 25
 
 # create mesh dir

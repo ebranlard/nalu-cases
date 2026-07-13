@@ -23,26 +23,29 @@ cases = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
 LL = 500
 MM = 150
-yplus=1
+yplus=0.3
+
 
 # --- Main inputs
 submit=False
 nT_steady=60
 SS_WING_PP=False
-zSpan = 4.0
+dz = 0.03
+
 
 # airfoil_names = []
 # airfoil_names += ['S809'] 
 # airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
 
-for nSpan in [24]:
+for nSpan in [4]:
     #aseq = np.arange(-5, 25+3/2, 2.5)
     aseq = np.arange(-5, 20+3/2, 5)
     #aseq = np.arange(-20, 25+3/2, 5)
     #aseq = np.arange(-2, 3+3/2, 1)
     one_job = False
 
-    case_dir    = case_dir_base + '_z{}_n{}'.format(int(zSpan), nSpan)
+    zSpan = dz*nSpan
+    case_dir    = case_dir_base + '_dz{}_n{}'.format(dz, nSpan)
     if SS_WING_PP:
         nalu_template ='_templates/airfoil_name/input_pp.yaml'
     else:
@@ -78,7 +81,7 @@ for nSpan in [24]:
     print(f'airfoil_names: {airfoil_names}')
 
 
-    background_3d = './_meshes/background_n{}.exo'.format(nSpan)
+    background_3d = './_meshes/background_dz{}_n{}.exo'.format(dz, nSpan)
 
     if not os.path.exists(background_3d):
         background_3d_n1 = './_meshes/background_n1.exo'
@@ -100,7 +103,7 @@ for nSpan in [24]:
             print(f'{f"Re={re:.2f}":-^70}')
 
             # --- Main paths and job names           
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}__l{LL}_l{LL}_m{MM}_n1_re{re:05.2f}M_y{yplus}mu.exo')
+            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}__l{LL}_m{MM}_n1_re{re:05.2f}M_y{yplus}mu.exo')
             if not os.path.exists(mesh_file_2d):
                 raise Exception('[WARN] Mesh not found: ', mesh_file_2d)
 

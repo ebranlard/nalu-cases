@@ -24,7 +24,7 @@ cases = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
 LL = 500
 MM = 150
-yplus=1
+yplus=0.3
 # airfoil_names = ['naca0018']
 print(cases)
 

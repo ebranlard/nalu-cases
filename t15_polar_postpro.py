@@ -45,7 +45,7 @@ case_dir_2d = os.path.join(out_dir,'cases_polar2d'+suffix)
 
 
 # airfoil_names =  list(airfoil_names) 
-# airfoil_names =[]
+airfoil_names =[]
 # # airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211'] + ['S809'] #  +  list(airfoil_names)
 # # airfoil_names = ['du00-w-212']
 # airfoil_names += ['S809']
@@ -61,6 +61,7 @@ case_dir_2d = os.path.join(out_dir,'cases_polar2d'+suffix)
 # airfoil_names +=['ffa-w3-241']
 # airfoil_names +=['ffa-w3-360']
 # airfoil_names +=['naca0018']
+airfoil_names +=['fb60']
 
 
 os.makedirs(polout_dir, exist_ok=True)
@@ -146,7 +147,7 @@ for airfoil_name in airfoil_names:
         yaml_file2d = os.path.join(sim_dir,'input_aoa00.0.yaml')
         polar_out2d = os.path.join(polout_dir, base+'_CFD2D.csv') # <<<<<<<<<<<<<<<<<<<<<<<<<<<<< CSV EXPORT
         try:
-            dfp, dfss, _ = polar_postpro(pattern, yaml_file2d, polar_out = polar_out2d, use_ss=True, plot=False, verbose=False)
+            dfp, dfss, _ = polar_postpro(pattern, yaml_file2d, polar_out = polar_out2d, use_ss=True, plot=False, verbose=True)
             polars = {'cfd': dfp, **polars}
         except FileNotFoundError as e:
             print('FileNotFoundError', e)

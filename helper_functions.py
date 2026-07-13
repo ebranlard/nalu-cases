@@ -56,7 +56,7 @@ def airfoil2configStat(airfoil_name, db, verbose=False):
 
     if verbose:
         print('Config_db', config_db)
-    config['Reynolds'] = db_arf['Re'].round(2).sort_values().unique()
+    config['Reynolds'] = db_arf['Re'].round(2).sort_values(ascending=False).unique()
     for k,v in config_db.items():
         if isinstance(v, (int, float)):
             if np.isnan(v):

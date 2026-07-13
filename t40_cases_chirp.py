@@ -3,74 +3,106 @@ import numpy as np
 import glob
 
 from nalulib import pyhyp
+from nalulib.weio.csv_file import CSVFile
 from nalulib.tools.dataframe_database import DataFrameDatabase
 from nalulib.nalu_input import NALUInputFile
 from nalulib.nalu_batch import nalu_batch
 from nalulib.exodus_rotate import exo_rotate
 from nalulib.exodus_quads2hex import exo_zextrude
 from helper_functions import generate_step_chirp
+from helper_functions import airfoil2configStat
 import json
 
 
 
 # --- Main inputs
-nSpan = 24
-nT_steady       = 50  # TODO 10 then 50
-K_TARGET        = 0.6 # TODO 0.6 or 1
-F0_FACTOR       = 2   # TODO 2 or 5
-N_CYCLES_DWELLS = 5   # TODO 5
-N_CONV          = 250  # TODO 10 then 250
-N_CYCLES_CHIRP  = 2   # TODO 2
-DT_FACT         = 0.05 # TODO 0.02
-PREFIX=''
+# # nSpan = 24
+# # nT_steady       = 50  # TODO 10 then 50
+# # K_TARGET        = 0.6 # TODO 0.6 or 1
+# # F0_FACTOR       = 2   # TODO 2 or 5
+# # N_CYCLES_DWELLS = 5   # TODO 5
+# # N_CONV          = 250  # TODO 10 then 250
+# # N_CYCLES_CHIRP  = 2   # TODO 2
+# # DT_FACT         = 0.05 # TODO 0.02
+# # PREFIX=''
 
-# Higher res
-nSpan = 24
-nT_steady       = 55   # TODO 10, 50 60
-K_TARGET        = 1.2  # TODO 0.6 or 1
-F0_FACTOR       = 4    # TODO 2 or 4, 5
-N_CYCLES_DWELLS = 5    # TODO 5
-N_CONV          = 600  # TODO 250, 400
-N_CYCLES_CHIRP  = 4    # TODO 2
+# # Higher res
+# nSpan = 24
+# nT_steady       = 55   
+# K_TARGET        = 1.2  
+# F0_FACTOR       = 4    
+# N_CYCLES_DWELLS = 5    
+# N_CONV          = 600  
+# N_CYCLES_CHIRP  = 4    
+# DT_FACT         = 0.05 # TODO 0.02
+# PREFIX=''
+# SUFIX='_HR'
+
+nSpan = 4
+nT_steady       = 55   
+K_TARGET        = 1.2  
+F0_FACTOR       = 4    
+N_CYCLES_DWELLS = 5    
+N_CONV          = 600  
+N_CYCLES_CHIRP  = 4    
 DT_FACT         = 0.05 # TODO 0.02
 PREFIX=''
 SUFIX='_HR'
 
 
+# --- Torque
+#db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
+#db = db.select({'Roughness':'Clean'})
+#db = db.query('airfoil!="L303"') # No geometry for L303
+#airfoil_names = db.configs['airfoil'].unique()
 
+# --- NAWEA
+case_dir_base = 'cases_polar3d_nawea'
+cases = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
+airfoil_names = cases['airfoil'].unique().tolist()
 
+chord=1
+LL = 500
+MM = 150
+yplus=0.3
+dz = 0.03
 
+# airfoil_names =  list(airfoil_names) + ['du00-w2-212', 'nlf1-0416'] 
+# airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
+#airfoil_names = ['S809']
+#airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
+# airfoil_names = ['nlf1-0416']
+# airfoil_names = ['du00-w-212']
+# airfoil_names = ['fb60']
 
 SS_WING_PP = False
 
-#Reynolds =[0.1, 0.5, 0.75, 1, 2, 5, 10]
 Alpha_mean = [0] # TODO mesh center at 0.25 is not ready if alpha is not 0
 Amplitudes = [1]
-#nramp=10
 # alpha_mean_deg=0.0
 # alpha_amp_deg=1.0
 A1, A2 = 0.165, 0.335
-B1, B2 = 0.0455, 0.3
+B1, B2 = 0.0455, 0.3 # B1 used to estimate frequency range of chirp
 
 
+# --- Derived parameters
+zSpan = dz*nSpan
 
-mesh_dir    ='meshes'
-case_dir    ='cases_chirp_n{}'.format(nSpan)
+mesh_dir    ='_meshes'
+case_dir    ='cases_chirp_dz{}_n{}'.format(dz, nSpan)
 if SS_WING_PP:
     nalu_template ='_templates/airfoil_name/input_no_output.yaml'
 else:
-    #nalu_template ='_templates/airfoil_name/input_no_output_no_wing_pp.yaml'
     nalu_template ='_templates/airfoil_name/input_no_wing_pp.yaml'
 current_path = os.getcwd()
+
+# --- Sim inputs
 mem=None
 nodes=1
 ntasks=None
-
-
-
 if 'ebranlard' in current_path: # Unity
     cluster = 'unity'
-    batch_template ='_templates/submit-unity.sh'
+    batch_template ='_templates/submit-unity_n1.sh'
     ntasks=92 #TODO TODO Unity
     hours={4:16, 121:48}[nSpan]
     nodes={4:1 , 121:1}[nSpan]
@@ -88,27 +120,6 @@ else:
     hours=2
 
 
-chord=1
-DENSITY= 1.2
-VISCOSITY = 9.0E-06 # mu
-SPECIFIC_DISSIPATION_RATE= 114.54981120000002
-TURBULENT_KE= 0.0013020495206400003
-
-N = 150
-yplus=0.1
-
-# 
-db = DataFrameDatabase('experiments/glasgow/DB_exp_loop.pkl')
-db = db.select({'Roughness':'Clean'})
-db = db.query('airfoil!="L303"') # No geometry for L303
-airfoil_names = db.configs['airfoil'].unique()
-
-# airfoil_names =  list(airfoil_names) + ['du00-w2-212', 'nlf1-0416'] 
-# airfoil_names = ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']  +  list(airfoil_names)
-airfoil_names = ['S809']
-#airfoil_names += ['du00-w-212', 'nlf1-0416', 'ffa-w3-211']
-# airfoil_names = ['nlf1-0416']
-# airfoil_names = ['du00-w-212']
 
 print(f'-------------------------------- SETUP ---------------------------------')
 print(f'cluster      : {cluster}')
@@ -119,22 +130,23 @@ print(f'airfoil_names: {airfoil_names}')
 
 
 
-background_3d = './meshes/background_n{}.exo'.format(nSpan)
-
+background_3d = os.path.join(mesh_dir, 'background_dz{}_n{}.exo'.format(dz, nSpan))
 if not os.path.exists(background_3d):
-    background_3d_n1 = './meshes/background_n1.exo'
-    exo_zextrude(background_3d_n1, background_3d, nSpan=nSpan, zSpan=4.0, zoffset=0.0, verbose=True, airfoil2wing=False, ss_wing_pp=False, profiler=False, ss_suffix='_bg')
+    background_3d_n1 = os.path.join(mesh_dir, 'background_n1.exo')
+    exo_zextrude(background_3d_n1, background_3d, nSpan=nSpan, zSpan=zSpan, zoffset=0.0, verbose=True, airfoil2wing=False, ss_wing_pp=False, profiler=False, ss_suffix='_bg')
 
 
 yml = NALUInputFile(nalu_template)
 
 
 
-
-
+DENSITY= 1.2
+VISCOSITY = 9.0E-06 # mu
+SPECIFIC_DISSIPATION_RATE= 114.54981120000002
+TURBULENT_KE= 0.0013020495206400003
 def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3d, nalu_template, sim_dir, basename, nSpan=4, 
                 density=DENSITY, viscosity=VISCOSITY, turbulent_ke=TURBULENT_KE, specific_dissipation_rate=SPECIFIC_DISSIPATION_RATE, 
-                chord=1, batch_template=None, nramp=5):
+                chord=1, batch_template=None):
 
     if isinstance(nalu_template, str):
         yml_in = NALUInputFile(nalu_template)
@@ -153,7 +165,6 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
     dt = float(np.around(DT_FACT * chord / U, 8))
     T = chord/U*nT_steady
 
-
     basename_ReMean = basename+'_'+'re{:05.2f}_mean{:02d}'.format(re, int(alpha_mean))
     basename = PREFIX+basename_ReMean+'_'+'A{:02d}'.format(int(amplitude))+SUFIX
     yaml_file = os.path.join(sim_dir, basename+'.yaml')
@@ -170,7 +181,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
                           inlet_name='inlet', outlet_name='outlet',
                           verbose=False, profiler=False, debug=False)
         print('Extrudingmesh: ', extruded_mesh_2d, nSpan)
-        exo_zextrude(rotated_mesh_2d, extruded_mesh_2d, nSpan=nSpan, zSpan=4.0, zoffset=0.0, verbose=False, airfoil2wing=True, ss_wing_pp=SS_WING_PP, profiler=False, ss_suffix=None)
+        exo_zextrude(rotated_mesh_2d, extruded_mesh_2d, nSpan=nSpan, zSpan=zSpan, zoffset=0.0, verbose=False, airfoil2wing=True, ss_wing_pp=SS_WING_PP, profiler=False, ss_suffix=None)
         try:
             os.remove(rotated_mesh_2d)
         except:
@@ -193,10 +204,10 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
         af['restart']['restart_data_base_name'] = 'restart/'+basename+'_arf'
 
     if SS_WING_PP:
-        pp = af['post_processing'][0]['output_file_name'] = 'forces_'+basename+'_pp.csv'
-        pp = af['post_processing'][1]['output_file_name'] = 'forces_'+basename+'.csv'
+        af['post_processing'][0]['output_file_name'] = 'forces_'+basename+'_pp.csv'
+        af['post_processing'][1]['output_file_name'] = 'forces_'+basename+'.csv'
     else:
-        pp = af['post_processing'][0]['output_file_name'] = 'forces_'+basename+'.csv'
+        af['post_processing'][0]['output_file_name'] = 'forces_'+basename+'.csv'
 
     # Flow variables
     yml.velocity = [U, 0, 0]
@@ -209,9 +220,6 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
     yml.inflow_specific_dissipation_rate  = specific_dissipation_rate
     yml.outflow_specific_dissipation_rate = specific_dissipation_rate
     yml.IC_specific_dissipation_rate      = specific_dissipation_rate
-
-
-
 
     # --- Motion
     #t_steady = T
@@ -244,6 +252,7 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
     else:
         batch_file =None
 
+    # --- Saving info to a json file to help postprocessing
     print('Saving yaml...')
     info['viscosity'] = viscosity # this is mu
     info['density']   = density
@@ -259,78 +268,31 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
 # --- Loop through airfoils and create meshes
 for ia, airfoil_name in enumerate(airfoil_names):
     print(f'---------------------------- {airfoil_name} ------------------------')
-    db_arf = db.select({'airfoil':airfoil_name})
 
-    Reynolds = db_arf.configs['Re'].round(2).unique()
-    #RE_expected = np.array([0.8, 1.0, 1.2, 1.4, 1.5, 3.0]) # 0.75, 1.0, 1.25, 1.3, 1.4, 1.5]
-    RE_expected = np.array([0.75, 1.0, 1.2, 1.4, 1.5, 3.0]) # 0.75, 1.0, 1.25, 1.3, 1.4, 1.5]
-    RE = []
-    for re in Reynolds:
-        i=np.argmin(np.abs(re- RE_expected))
-        re_ = RE_expected[i]
-        RE.append(re_)
-    Reynolds=np.array(sorted(list(set(RE))))
+    config, _ = airfoil2configStat(airfoil_name, cases)
+    Reynolds = config['Reynolds']
 
-
-    density=DENSITY
-    viscosity=VISCOSITY #mu
-    specific_dissipation_rate= SPECIFIC_DISSIPATION_RATE
-    turbulent_ke=TURBULENT_KE
-
-    # --- HACK ['du00-w-212', 'nlf1-0416', 'ffa'], not in database:
-    hack=False
-    if len(db_arf)==0:
-        hack=True
-        if airfoil_name == 'du00-w-212':
-            Reynolds=[3]; re=Reynolds[0]
-            #mesh_file_2d = './du00-w-212/grids/du00w212_re3M_y03_aoa0_n1.exo'
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
-            density=1.225
-            viscosity=1.392416666666667e-05 # mu
-            #dt_fact=0.55
-        elif airfoil_name == 'nlf1-0416':
-            Reynolds=[4]; re=Reynolds[0]
-            #mesh_file_2d = './nl1-0416/grids/nlf1-0416_re4M_y2_aoa0_n1.exo'
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
-            density=1.225
-            viscosity=1.0443125000000002e-05 # mu
-            specific_dissipation_rate= 460.34999999999997
-            turbulent_ke=0.00392448375
-            #dt_fact=0.55
-
-
-        elif airfoil_name == 'ffa-w3-211':
-            Reynolds=[10]; re=Reynolds[0]
-            #mesh_file_2d = './ffa/grids/ffa_w3_211_near_body_aoa0_n1.exo'
-            mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
-        else:
-            raise NotImplementedError(airfoil_name)
-
-    
-
-    #print('Reynolds: ', Reynolds, '({})'.format(len(Reynolds)))
     sim_dir = os.path.join(case_dir, airfoil_name)
     if not os.path.exists(sim_dir):
         os.makedirs(sim_dir)
 
-
     nalu_batches = []
     for iRe, re in enumerate(Reynolds):
-        mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}_m{N}_n1_re{re:05.2f}M_y{yplus}mu.exo')
+        mesh_file_2d = os.path.join(mesh_dir, f'{airfoil_name}__l{LL}_m{MM}_n1_re{re:05.2f}M_y{yplus}mu.exo')
         print('re',re, mesh_file_2d)
         for ia, alpha_mean in enumerate(Alpha_mean):
             for iA, amplitude in enumerate(Amplitudes):
                 yml, batch = create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3d, yml, sim_dir, basename=airfoil_name, nSpan=nSpan, 
-                                         density=density, viscosity=viscosity, turbulent_ke=turbulent_ke, specific_dissipation_rate=specific_dissipation_rate,
+                                         density=config['density'], viscosity=config['viscosity'], turbulent_ke=config['turbulent_ke'], specific_dissipation_rate=config['specific_dissipation_rate'],
                                          batch_template=batch_template)
                 nalu_batches.append(batch)
                 print('[YML]', yml)
                 print('[BAT]', batch)
-                if iA==0:
+                if iA==0: # Amplitudes
                     break
-            if ia==0:
+            if ia==0: # Angles of atack
                 break
-        if iRe==0:
+        if iRe==0: # Reynolds
             break
 
     # --- Write a batch file with all
