@@ -21,10 +21,13 @@ from helper_functions import airfoil2configStat
 # --- NAWEA
 case_dir    ='cases_polar2d_nawea'
 cases = CSVFile('airfoils_data/DB_NAWEA_configs_reduced.csv').toDataFrame()
+cases = CSVFile('airfoils_data/DB_NAWEA_NACA.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
-LL = 500
+# LL = 500
+# yplus=0.3
+yplus=0.1
+LL = 600
 MM = 150
-yplus=0.3
 # airfoil_names = ['naca0018']
 print(cases)
 
@@ -54,7 +57,7 @@ if 'ebranlard' in current_path: # Unity
 elif 'ebranlar' in current_path: # Kestrel
     cluster = 'kestrel'
     batch_template ='_templates/submit-kestrel.sh'
-    hours=0.5
+    hours=1.0
 else:
     #cluster = 'local'
     #batch_template =None

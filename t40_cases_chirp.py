@@ -39,7 +39,7 @@ import json
 # SUFIX='_HR'
 
 nSpan = 24
-nT_steady       = 55   
+nT_steady       = 65   
 K_TARGET        = 1.2  
 F0_FACTOR       = 4    
 N_CYCLES_DWELLS = 5    
@@ -63,9 +63,9 @@ cases = CSVFile('airfoils_data/DB_NAWEA_configs_torque.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
 
 chord=1
-LL = 500
+yplus=0.1
+LL = 600
 MM = 150
-yplus=0.3
 dz = 0.03
 
 # airfoil_names =  list(airfoil_names) + ['du00-w2-212', 'nlf1-0416'] 
