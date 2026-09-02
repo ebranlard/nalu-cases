@@ -38,7 +38,7 @@ import json
 # PREFIX=''
 # SUFIX='_HR'
 
-nSpan = 4
+nSpan = 24
 nT_steady       = 55   
 K_TARGET        = 1.2  
 F0_FACTOR       = 4    
@@ -59,6 +59,7 @@ SUFIX='_HR'
 # --- NAWEA
 case_dir_base = 'cases_polar3d_nawea'
 cases = CSVFile('airfoils_data/DB_NAWEA_configs_reduced.csv').toDataFrame()
+cases = CSVFile('airfoils_data/DB_NAWEA_configs_torque.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
 
 chord=1
@@ -110,8 +111,8 @@ elif 'ebranlar' in current_path: # Kestrel
     cluster = 'kestrel'
     #batch_template ='_templates/submit-kestrel.sh'
     batch_template ='_templates/submit-kestrel.sh'
-    hours={2:24, 4:48, 22:144, 24:144, 121:202}[nSpan]
-    nodes={2:1 , 4:1 , 22:1 , 24:1,   121:1}[nSpan]
+    hours={2:24, 4:64, 22:144, 24:240, 121:202}[nSpan]
+    nodes={2:1 , 4:1 , 22:1  , 24:1,   121:1}[nSpan]
 else:
     #cluster = 'local'
     #batch_template =None

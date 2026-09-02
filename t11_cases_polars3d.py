@@ -20,6 +20,7 @@ from helper_functions import airfoil2configStat
 mesh_dir      = '_meshes'
 case_dir_base = 'cases_polar3d_nawea'
 cases = CSVFile('airfoils_data/DB_NAWEA_configs_reduced.csv').toDataFrame()
+cases = CSVFile('airfoils_data/DB_NAWEA_configs_torque.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
 LL = 500
 MM = 150
@@ -39,9 +40,9 @@ dz = 0.03
 # airfoil_names += ['snl-ffa-w3-560fb', 'snl-ffa-w3-480fb', 'snl-ffa-w3-420fb']
 
 sim_dirs=[]
-for nSpan in [2]:
-    #aseq = np.arange(-5, 25+3/2, 2.5)
-    aseq = np.arange(-5, 20+3/2, 5)
+for nSpan in [4]:
+    aseq = np.arange(-5, 25+3/2, 2.5)
+    #aseq = np.arange(-5, 20+3/2, 5)
     #aseq = np.arange(-20, 25+3/2, 5)
     #aseq = np.arange(-2, 3+3/2, 1)
     one_job = False
