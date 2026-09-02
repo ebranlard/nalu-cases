@@ -40,19 +40,19 @@ def create_amrbench_db():
 # --- MISC
 # --------------------------------------------------------------------------------{
 def create_misc_db():
-    db = DataFrameDatabase(name='Misc')
+    db = dataframedatabase(name='misc')
     # --- 
     airfoil_name = 'ffa-w3-211'
-    config={'airfoil':airfoil_name, 'Re':10}
-    config['density']                  = 1.2                    # TODO DUMMY VALUES
-    config['viscosity']                = 9.0e-06 # This is mu   # TODO DUMMY VALUES
-    config['specific_dissipation_rate']= 114.54981120000002     # TODO DUMMY VALUES
-    config['turbulent_ke']             = 0.0013020495206400003  # TODO DUMMY VALUES
-    db.insert(config|{'Setup':'none'}, pd.DataFrame())
+    config={'airfoil':airfoil_name, 're':10}
+    config['density']                  = 1.2                    # todo dummy values
+    config['viscosity']                = 9.0e-06 # this is mu   # todo dummy values
+    config['specific_dissipation_rate']= 114.54981120000002     # todo dummy values
+    config['turbulent_ke']             = 0.0013020495206400003  # todo dummy values
+    db.insert(config|{'setup':'none'}, pd.dataframe())
 
     print(db)
-    # --- Save db
-    db.save('./airfoils_data/DB_misc_stat.pkl')
+    # --- save db
+    db.save('./airfoils_data/db_misc_stat.pkl')
 
     return db
 
@@ -117,6 +117,24 @@ def create_NACA_db():
 
 
 
+def create_mac_db():
+    db = DataFrameDatabase(name='Mac')
+    # DU91-W2-250
+    # NACA-3825
+    # --- 
+#     airfoil_name = 'ffa-w3-211'
+#     config={'airfoil':airfoil_name, 'Re':10}
+#     config['density']                  = 1.2                    # TODO DUMMY VALUES
+#     config['viscosity']                = 9.0e-06 # This is mu   # TODO DUMMY VALUES
+#     config['specific_dissipation_rate']= 114.54981120000002     # TODO DUMMY VALUES
+#     config['turbulent_ke']             = 0.0013020495206400003  # TODO DUMMY VALUES
+#     db.insert(config|{'Setup':'none'}, pd.DataFrame())
+# 
+#     print(db)
+#     # --- Save db
+#     db.save('./airfoils_data/DB_misc_stat.pkl')
+# 
+    return db
 
 
 

@@ -15,14 +15,18 @@ import os
 import re
 from welib.essentials import *
 
-csvDir = '_results/_polars/'
-ADDir = '_results/_polars_AD/'
+suffix='_nawea'
+csvDir  = '_results'+suffix+'/_polars/'
+ADDir   = '_results'+suffix+'/_polars_AD/'
 
 os.makedirs(ADDir, exist_ok = True)
 
 files = glob.glob(csvDir + '*.csv')
 # print(files)
 for f in files:
+    if 'fb90' in f:
+        NOTE(f'Skipping {f}')
+        continue
     print('\nt16: Opening:', f)
     basename = os.path.basename(f)
     ADfilename = os.path.join(ADDir, basename.replace('.csv' ,'.dat'))
@@ -46,23 +50,36 @@ for f in files:
     #pol.unsteadyParams()
     pol.toAeroDyn(ADfilename, comment=comment, Re=Re)
     if 'cfd' in basename.lower()  and '_n' in basename.lower():
-        iLow  = np.argmin(np.abs(pol.alpha+2.8))
-        iHigh = np.argmin(np.abs(pol.alpha-7.0))
+        iLow  = np.argmin(np.abs(pol.alpha + 2.8))
+        iHigh = np.argmin(np.abs(pol.alpha - 7.0))
+        if pol.cl[iLow] > 0 and iLow > 0:
+            iLow -= 1
+
         alpha = pol.alpha
         cl = pol.cl
-        if cl[iLow]>0 and iLow>0:
-            iLow=iLow-1
         cd = pol.cd
         cm = pol.cm
-        a0, a1 = pol.alpha[iLow], pol.alpha[iHigh]
+
+        a0, a1   = pol.alpha[iLow], pol.alpha[iHigh]
         cl0, cl1 = pol.cl[iLow], pol.cl[iHigh]
+        # Get original Cl value at alpha = 0 (interpolated if 0 is not an explicit grid point)
+        cl_at_0 = np.interp(0.0, pol.alpha, pol.cl)
 
         cl_alpha = (cl1 - cl0) / (a1 - a0)   # slope
-        cl_at_0 = cl0 - cl_alpha * a0               # intercept
-        alpha0 = -cl_at_0 / cl_alpha
+        #cl_at_0 = cl0 - cl_alpha * a0               # intercept
+        #alpha0 = -cl_at_0 / cl_alpha
+        # Shift linear line to pass through (0, cl_at_0) using the original slope
+        cl0_mod = cl_at_0 + cl_alpha * a0
+        cl1_mod = cl_at_0 + cl_alpha * a1
 
-        alpha_lin = np.arange(a0, a1 + 1e-12, 0.5)
-        cl_lin = np.interp(alpha_lin, [a0, a1], [pol.cl[iLow], pol.cl[iHigh]])
+        alpha_lin = np.arange(a0, a1 + 1e-12, 0.5) # Generate linear alpha grid
+
+        #cl_lin = np.interp(alpha_lin, [a0, a1], [pol.cl[iLow], pol.cl[iHigh]])
+        #cd_lin = np.interp(alpha_lin, pol.alpha, pol.cd)
+        #cm_lin = np.interp(alpha_lin, pol.alpha, pol.cm)
+
+        # Piecewise linear interpolation forcing exact match at a0, 0, and a1
+        cl_lin = np.interp(alpha_lin, [a0, 0.0, a1], [cl0_mod, cl_at_0, cl1_mod])
         cd_lin = np.interp(alpha_lin, pol.alpha, pol.cd)
         cm_lin = np.interp(alpha_lin, pol.alpha, pol.cm)
 
@@ -80,5 +97,4 @@ for f in files:
 #             import pdb; pdb.set_trace()
 #         comment  += f'\nMaking Cl linear by focusing on values at alpha= {a0} {a1} - Full polar extrapolation'
 #         pol3.toAeroDyn(ADfilename.replace('.dat', '_extraLin_full.dat'), comment=comment, Re=Re)
-
 

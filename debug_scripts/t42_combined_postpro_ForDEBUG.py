@@ -250,7 +250,7 @@ def postpro_cycles_loops(dw, info):
 # --- MAIN SCRIPTS
 # --------------------------------------------------------------------------------{
 # --- Main inputs
-out_dir = '_results/_data_paper/splits/'
+out_dir = '_results_nawea/_data_paper/splits/'
 
 cases=[]
 # cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':''    }]
@@ -258,8 +258,11 @@ cases=[]
 # cases+=[{'airfoil_name':'du00-w-212' , 'n':22 , 're':3   , 'suffix':''    }]
 # cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':''    }]
 # cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':''    }]
-cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HRCAT' }]
-cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'_HRCAT' }]
+# cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HRCAT' }]
+# cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'_HRCAT' }]
+
+# --- NAWEA
+cases+=[{'airfoil_name':'du00-w-212' , 'n':4 , 're':3    , 'suffix':'_HR'}]
 
 chord = 1
 span  = 4
@@ -272,11 +275,11 @@ for cs in cases:
     print(f"------------------------- {base}------------- {cs['suffix']}")
 
 
-    yml_path  = '_results/cases_chirp_n{}/{}/{}_re{:04.1f}_mean00_A01{:s}.yaml'.format(cs['n'], cs['airfoil_name'], cs['airfoil_name'], cs['re'], cs['suffix'])
+    yml_path  = '_results_nawea/cases_chirp_dz0.03_n{}/{}/{}_re{:05.2f}_mean00_A01{:s}.yaml'.format(cs['n'], cs['airfoil_name'], cs['airfoil_name'], cs['re'], cs['suffix'])
     json_path = yml_path.replace('.yaml','.json')
-    dvr_path  = yml_path.replace('.yaml', '_UAA.dvr')
+    dvr_path  = yml_path.replace('.yaml', '_UA5_OF.dvr')
     cfd_outb  = yml_path.replace('.yaml', '_CFD.outb')
-    uaa_outb  = yml_path.replace('.yaml', '_UAA.outb')
+    uaa_outb  = yml_path.replace('.yaml', '_UA5_OF.outb')
 
     # --- JSON Info
     info, dfc    = load_json_chirp(json_path, verbose = False, plot = False)
@@ -304,19 +307,19 @@ for cs in cases:
     # --- Split signals
     # All, Transients, Step, Chirp, Dwells
     al, tr, st, ch, dw = split_chirp(info, dfc, dff, plot=False)
-    FASTOutputFile().writeDataFrame(df=getdf(al), filename = os.path.join(out_dir, 'all_'+base+'_CFD.outb'), tLabel='t')
-    FASTOutputFile().writeDataFrame(df=getdf(tr), filename = os.path.join(out_dir, 'trs_'+base+'_CFD.outb'), tLabel='t')
-    FASTOutputFile().writeDataFrame(df=getdf(st), filename = os.path.join(out_dir, 'stp_'+base+'_CFD.outb'), tLabel='t')
-    FASTOutputFile().writeDataFrame(df=getdf(ch), filename = os.path.join(out_dir, 'chp_'+base+'_CFD.outb'), tLabel='t')
+    FASTOutputFile().writeDataFrame(df=getdf(al), filename = os.path.join(out_dir, 'all_'+base+'_CFD.outb'))
+    FASTOutputFile().writeDataFrame(df=getdf(tr), filename = os.path.join(out_dir, 'trs_'+base+'_CFD.outb'))
+    FASTOutputFile().writeDataFrame(df=getdf(st), filename = os.path.join(out_dir, 'stp_'+base+'_CFD.outb'))
+    FASTOutputFile().writeDataFrame(df=getdf(ch), filename = os.path.join(out_dir, 'chp_'+base+'_CFD.outb'))
 
     postpro_step(st['t'], st['cl'], info, plot=True) # TODO TODO
 
 
     al, tr, st, ch, dw = split_chirp(info, dfc, dfa, plot=False)
-    FASTOutputFile().writeDataFrame(df=getdf(al), filename = os.path.join(out_dir, 'all_'+base+'_UAA.outb'), tLabel='t')
-    FASTOutputFile().writeDataFrame(df=getdf(tr), filename = os.path.join(out_dir, 'trs_'+base+'_UAA.outb'), tLabel='t')
-    FASTOutputFile().writeDataFrame(df=getdf(st), filename = os.path.join(out_dir, 'stp_'+base+'_UAA.outb'), tLabel='t')
-    FASTOutputFile().writeDataFrame(df=getdf(ch), filename = os.path.join(out_dir, 'chp_'+base+'_UAA.outb'), tLabel='t')
+    FASTOutputFile().writeDataFrame(df=getdf(al), filename = os.path.join(out_dir, 'all_'+base+'_UAA.outb'))
+    FASTOutputFile().writeDataFrame(df=getdf(tr), filename = os.path.join(out_dir, 'trs_'+base+'_UAA.outb'))
+    FASTOutputFile().writeDataFrame(df=getdf(st), filename = os.path.join(out_dir, 'stp_'+base+'_UAA.outb'))
+    FASTOutputFile().writeDataFrame(df=getdf(ch), filename = os.path.join(out_dir, 'chp_'+base+'_UAA.outb'))
 
 #     for dd in dw:
 #         k = dd['k']

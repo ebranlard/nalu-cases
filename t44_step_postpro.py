@@ -31,14 +31,33 @@ from helper_functions import analyse_step, load_ULS
 # --------------------------------------------------------------------------------{
 # --- Main inputs
 cases=[]
-cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':''    }]
-cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HR' }]
-cases+=[{'airfoil_name':'du00-w-212' , 'n':4  , 're':3   , 'suffix':''    }]
-cases+=[{'airfoil_name':'du00-w-212' , 'n':22 , 're':3   , 'suffix':''    }]
-cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':''    }]
-cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':''    }]
-cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'_HR' }]
+# --- TORQUE
+# res_dir='_results/'
+# cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':''    }]
+# cases+=[{'airfoil_name':'S809'       , 'n':24 , 're':0.8 , 'suffix':'_HR' }]
+# cases+=[{'airfoil_name':'du00-w-212' , 'n':4  , 're':3   , 'suffix':''    }]
+# cases+=[{'airfoil_name':'du00-w-212' , 'n':22 , 're':3   , 'suffix':''    }]
+# cases+=[{'airfoil_name':'nlf1-0416'  , 'n':24 , 're':4   , 'suffix':''    }]
+# cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':''    }]
+# cases+=[{'airfoil_name':'ffa-w3-211' , 'n':24 , 're':10  , 'suffix':'_HR' }]
 # 
+# --- NAWEA
+res_dir='_results_nawea/'
+# cases+=[{'airfoil_name':'fb60'       , 'n':4 , 're':10   , 'suffix':'_hr'}]
+# # cases+=[{'airfoil_name':'fb90'       , 'n':4 , 're':10   , 'suffix':'_hr'}]
+# cases+=[{'airfoil_name':'ffa-w3-360' , 'n':4 , 're':13   , 'suffix':'_HR'}]
+cases+=[{'airfoil_name':'naca4403'   , 'n':4 , 're':1    , 'suffix':'_HR'}] # 03%
+cases+=[{'airfoil_name':'naca4416'   , 'n':4 , 're':1    , 'suffix':'_HR'}]
+cases+=[{'airfoil_name':'naca4430'   , 'n':4 , 're':1    , 'suffix':'_HR'}] # 
+# cases+=[{'airfoil_name':'naca0012'   , 'n':4 , 're':10   , 'suffix':'_HR'}]
+# cases+=[{'airfoil_name':'nlf1-0416'  , 'n':4 , 're':4    , 'suffix':'_HR'}]
+# cases+=[{'airfoil_name':'naca0018'   , 'n':4 , 're':10   , 'suffix':'_HR'}]
+# cases+=[{'airfoil_name':'ffa-w3-211' , 'n':4 , 're':10   , 'suffix':'_HR'}] # 21%
+# cases+=[{'airfoil_name':'du00-w-212' , 'n':4 , 're':3    , 'suffix':'_HR'}] # 21%
+# cases+=[{'airfoil_name':'S809'       , 'n':4 , 're':0.75 , 'suffix':'_HR'}]
+# cases+=[{'airfoil_name':'snl-ffa-w3-420fb', 'n':4 , 're':10 , 'suffix':'_HR'}]
+# cases+=[{'airfoil_name':'snl-ffa-w3-480fb', 'n':4 , 're':8  , 'suffix':'_HR'}]
+# cases+=[{'airfoil_name':'snl-ffa-w3-560fb', 'n':4 , 're':10 , 'suffix':'_HR'}]
 
 
 # --------------------------------------------------------------------------------}
@@ -65,7 +84,7 @@ for cs in cases:
 # for cs in [cases[0]]:
     base = cs['airfoil_name'] + '_re{:05.2f}M'.format(cs['re']) + cs['suffix']
     print(f"------------------------- {base}------------- {cs['suffix']}")
-    yml_path  = '_results/cases_chirp_n{}/{}/{}_re{:04.1f}_mean00_A01{:s}.yaml'.format(cs['n'], cs['airfoil_name'], cs['airfoil_name'], cs['re'], cs['suffix'])
+    yml_path  = res_dir+'cases_chirp_dz0.03_n{}/{}/{}_re{:05.2f}_mean00_A01{:s}.yaml'.format(cs['n'], cs['airfoil_name'], cs['airfoil_name'], cs['re'], cs['suffix'])
     json_path = yml_path.replace('.yaml','.json')
     dvr_path  = yml_path.replace('.yaml', '_UAA.dvr')
     cfd_outb  = yml_path.replace('.yaml', '_CFD.outb')
@@ -76,27 +95,30 @@ for cs in cases:
     dfc = FASTOutputFile(cfd_outb).toDataFrame()
     dfl = load_ULS(uls_outb, dfc)
 
-    p,fig, _ = analyse_step(dfc, info, plot=True, label='CFD', c=fColrs(1), fig=fig, doFit=False)
-    p,fig, _ = analyse_step(dfl, info, plot=True, label='ULS', c=fColrs(2), fig=fig, doFit=False)
+    p,fig, _ = analyse_step(dfc, info, plot=True, label='CFD' + cs['airfoil_name'], c=None, fig=fig, doFit=False)
 
-
-    COLRSLB={'Wg':fColrs(3), 'Ks':fColrs(6), 'OF':fColrs(4)}
-    LS = ['-', '--', ':', '-.']
-#     fig=None
-    #for im, UAMod in enumerate([2, 3, 4, 5]):
-    for im, UAMod in enumerate([4, 2, 3]):
-#         for ip, (p,lab) in enumerate(zip([pWag, pKus, pOF] , ['Wg', 'Ks', 'OF'])):
-#         for ip, (p,lab) in enumerate(zip([pWag, pKus, pOF] , ['Wg', 'Ks', 'OF'])):
-        for ip, (p,lab) in enumerate(zip([pWag, pKus, pOF] , ['OF'])):
-
-            A1, b1, A2, b2 = p
-            print(f"{lab:15s}: A1={A1:6.3f}, b1={b1:6.3f} A2={A2:6.3f}, b2={b2:6.3f}")
-        #for ip, (p,lab) in enumerate(zip([pOF] , ['OF'])):
-            uaa_outb  = yml_path.replace('.yaml', '_UA{}_{}.outb'.format(UAMod, lab))
-
-            # --- Read postprocessed CFD (see t41_chirp_ua)
-            dfu = FASTOutputFile(uaa_outb).toDataFrame()
-            p,fig,_ = analyse_step(dfu, info, plot=True, label=f'UA{UAMod} {lab}', c=COLRSLB[lab], ls=LS[im], fig=fig, doFit=False, useCl=True)
+    # KEEP ME
+#     p,fig, _ = analyse_step(dfc, info, plot=True, label='CFD' + cs['airfoil_name'], c=fColrs(1), fig=fig, doFit=False)
+#     p,fig, _ = analyse_step(dfl, info, plot=True, label='ULS', c=fColrs(2), fig=fig, doFit=False)
+# 
+# 
+#     COLRSLB={'Wg':fColrs(3), 'Ks':fColrs(6), 'OF':fColrs(4)}
+#     LS = ['-', '--', ':', '-.']
+# #     fig=None
+#     #for im, UAMod in enumerate([2, 3, 4, 5]):
+#     for im, UAMod in enumerate([5, 2, 3]):
+# #         for ip, (p,lab) in enumerate(zip([pWag, pKus, pOF] , ['Wg', 'Ks', 'OF'])):
+# #         for ip, (p,lab) in enumerate(zip([pWag, pKus, pOF] , ['Wg', 'Ks', 'OF'])):
+#         for ip, (p,lab) in enumerate(zip([pWag, pKus, pOF] , ['OF'])):
+# 
+#             A1, b1, A2, b2 = p
+#             print(f"{lab:15s}: A1={A1:6.3f}, b1={b1:6.3f} A2={A2:6.3f}, b2={b2:6.3f}")
+#         #for ip, (p,lab) in enumerate(zip([pOF] , ['OF'])):
+#             uaa_outb  = yml_path.replace('.yaml', '_UA{}_{}.outb'.format(UAMod, lab))
+# 
+#             # --- Read postprocessed CFD (see t41_chirp_ua)
+#             dfu = FASTOutputFile(uaa_outb).toDataFrame()
+#             p,fig,_ = analyse_step(dfu, info, plot=True, label=f'UA{UAMod} {lab}', c=COLRSLB[lab], ls=LS[im], fig=fig, doFit=False, useCl=True)
 
 
 ax=fig.axes[0]

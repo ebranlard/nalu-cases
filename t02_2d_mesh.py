@@ -36,9 +36,11 @@ airfoil_names = cases['airfoil'].unique().tolist()
 # S809          -n 145 --marchDist 75	--re 1e6    --yplus 0.1 -i S809_l600.csv 
 # S809          -n 145 --marchDist 75	--re 0.1e6  --yplus 0.1 -i S809_l600.csv 
 
-LL = 500
+# LL = 500
+# plus=0.3
 MM = 150
-yplus=0.3
+LL = 600
+yplus=0.1
 marchDist = 25
 
 # create mesh dir

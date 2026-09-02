@@ -21,7 +21,7 @@ from nalulib.weio.csv_file import CSVFile
 #  - FFA_211 from Shreyas have 525 points
 #  - DU00-w-212 have 782 points
 #  - DU91 has 385 points
-LL=500
+LL=600
 n = int(LL/2)+1
 a_hyp = 3
 
@@ -41,6 +41,7 @@ cases = CSVFile('airfoils_data/DB_NAWEA_configs.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
 suffix='_coords'
 TE_TYPE=None #, 'sharp' # TODO need to implement an equispacing based on last spacing of upper or lower surface
+plot=True
 
 #airfoil_names=['ffa-w3-211']
 #airfoil_names=['naca4430']
@@ -62,22 +63,24 @@ for ia, arf_name in enumerate(airfoil_names):
     arf = mesh_airfoil(csv_file_in, output_file=csv_file_out, n=n, respline=True, method_te='min_dist', TE_type=TE_TYPE, a_hyp=a_hyp, plot=False, verbose=False)
 
     print('>>> Tri plot')
-    fig, axes = plt.subplots( 2, 3, gridspec_kw={'width_ratios': [1, 5, 1]}, figsize=(18, 5.5))
-    fig.subplots_adjust(left=0.04, right=0.99, top=0.95, bottom=0.07, hspace=0.20, wspace=0.20)
-    axes = np.asarray(axes)
+    if plot:
+        fig, axes = plt.subplots( 2, 3, gridspec_kw={'width_ratios': [1, 5, 1]}, figsize=(18, 5.5))
+        fig.subplots_adjust(left=0.04, right=0.99, top=0.95, bottom=0.07, hspace=0.20, wspace=0.20)
+        axes = np.asarray(axes)
 
-    arf._ori.tri_plot(title=arf_name + '- Original', axes=axes[0,:], n_target=50, legend=True)
-    arf.tri_plot(     title=arf_name + '- Remeshed', axes=axes[1,:], n_target=50, legend=True)
+        arf._ori.tri_plot(title=arf_name + '- Original', axes=axes[0,:], n_target=50, legend=True)
+        arf.tri_plot(     title=arf_name + '- Remeshed', axes=axes[1,:], n_target=50, legend=True)
 
-    axes[0,0].set_xlim(axes[1,0].get_xlim())
-    axes[0,0].set_ylim(axes[1,0].get_ylim())
+        axes[0,0].set_xlim(axes[1,0].get_xlim())
+        axes[0,0].set_ylim(axes[1,0].get_ylim())
 
-    axes[0,2].set_xlim(axes[1,2].get_xlim())
-    axes[0,2].set_ylim(axes[1,2].get_ylim())
+        axes[0,2].set_xlim(axes[1,2].get_xlim())
+        axes[0,2].set_ylim(axes[1,2].get_ylim())
 
-    fig.savefig(fig_file_out)
+        fig.savefig(fig_file_out)
+        plt.close('all')
+        print('Export: ', fig_file_out)
     print('Export: ', csv_file_out)
-    print('Export: ', fig_file_out)
 
     #if ia==0:
     #    break

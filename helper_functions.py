@@ -337,7 +337,7 @@ def load_json_chirp(json_path, verbose=False, plot=False):
         info['density']   = info.get('density',  1.2)
         info['re']        = info.get('re',  10)
     else:
-        raise Exception()
+        print('Viscosity, density, re:',info['viscosity'], info['density'], info['re'])
 
 
 

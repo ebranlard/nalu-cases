@@ -28,13 +28,16 @@ suffix='_nawea'
 # db_stat2 = DataFrameDatabase('./experiments/DB_misc_stat.pkl')
 
 # --- NAWEA
+TRANSLATE_CM = True # NOTE NOTE NOTE <<<<<<<<<<<<<<<<<<<<<<<<<< if polars output parameter was 0,0 and mesh not shifted
 suffix        = '_nawea'
 out_dir       = '_results'+suffix
 cases         = CSVFile('airfoils_data/DB_NAWEA_configs_reduced.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
 db            = DataFrameDatabase('airfoils_data/DB_iea_stat.pkl')
 dbn           = DataFrameDatabase('airfoils_data/DB_NACA_stat.pkl')
-db            = DataFrameDatabase.concatenate( (db, dbn))
+dba           = DataFrameDatabase('airfoils_data/DB_amrbench_stat.pkl')
+dbg          = DataFrameDatabase('airfoils_data/glasgow/DB_exp_static.pkl')
+db            = DataFrameDatabase.concatenate( (db, dbn, dba, dbg))
 print(db)
 dz = 0.03
 
@@ -69,7 +72,7 @@ os.makedirs(polout_dir, exist_ok=True)
 os.makedirs(figout_dir, exist_ok=True)
 
 case_dir_n = {
-        2:  os.path.join(out_dir, f'cases_polar3d{suffix}_dz0.03_n2/'),
+#         2:  os.path.join(out_dir, f'cases_polar3d{suffix}_dz0.03_n2/'),
         4:  os.path.join(out_dir, f'cases_polar3d{suffix}_dz0.03_n4/'),
 #         24: os.path.join(out_dir, f'cases_polar3d{suffix}_dz0.03_n24/'),
 #         121:os.path.join(out_dir, f'cases_polar3d{suffix}_dz0.03_n121/'),
@@ -102,7 +105,11 @@ for airfoil_name in airfoil_names:
             if len(db2.configs['Re'].unique())!=1:
                 raise Exception('>>> Problem in select', re)
             if 'Setup' in db2.keys():
-                polars = db2.toDict('Setup')
+                try:
+                    polars = db2.toDict('Setup')
+                except:
+                    polars = db2.toDict('Roughness')
+                    polars = {f"Exp {k}": v for k, v in polars.items()}
             elif 'Roughness' in db2.keys():
                 polars = db2.toDict('Roughness')
                 polars = {f"Exp {k}": v for k, v in polars.items()}
@@ -134,7 +141,7 @@ for airfoil_name in airfoil_names:
                 continue
             try:
                 pattern = os.path.join(sim_dir,'forces_aoa*.csv')
-                dfp, dfss, _ = polar_postpro(pattern, yaml_file3d, polar_out = polar_out3d, use_ss=True, plot=False, verbose=False, span=dz*nSpan, cfd_ls='-', cfd_m='o')
+                dfp, dfss, _ = polar_postpro(pattern, yaml_file3d, polar_out = polar_out3d, use_ss=True, plot=False, verbose=False, span=dz*nSpan, cfd_ls='-', cfd_m='o', shift_cm=TRANSLATE_CM)
             except FileNotFoundError as e:
                 FAIL('Not Combine Fail: FileNotFound', e)
                 continue
@@ -148,7 +155,7 @@ for airfoil_name in airfoil_names:
         yaml_file2d = os.path.join(sim_dir,'input_aoa00.0.yaml')
         polar_out2d = os.path.join(polout_dir, base+'_CFD2D.csv') # <<<<<<<<<<<<<<<<<<<<<<<<<<<<< CSV EXPORT
         try:
-            dfp, dfss, _ = polar_postpro(pattern, yaml_file2d, polar_out = polar_out2d, use_ss=True, plot=False, verbose=True)
+            dfp, dfss, _ = polar_postpro(pattern, yaml_file2d, polar_out = polar_out2d, use_ss=True, plot=False, verbose=False)
             polars = {'cfd': dfp, **polars}
         except FileNotFoundError as e:
             print('FileNotFoundError', e)
@@ -158,10 +165,22 @@ for airfoil_name in airfoil_names:
         print('--- PLOT')
         ylim = None
 #         if airfoil_name =='S809':
-        ylim  = [-1, 2]
+        ylimCl  = [-1, 2]
+
         xlimCd= [0, 0.3]
         xlimAlpha= [-15, 30]
-        fig = plot_polars(polars, verbose=True, ylim=ylim, plotCm=airfoil_name!='naca0018', xlimCd=xlimCd, xlimAlpha=xlimAlpha)
+
+#         ylimCl  = [-0.5, 2.35]
+#         xlimCd = [-0.01, 0.12]
+#         xlimAlpha=[-5, 22]
+# 
+        xlimAlpha=[-3, 22]
+        ylimCl =[-0.5, 2.10]
+        xlimCd =[0.0, 0.05]
+
+
+
+        fig = plot_polars(polars, verbose=True, ylim=ylimCl, plotCm=airfoil_name!='naca0018', xlimCd=xlimCd, xlimAlpha=xlimAlpha)
         fig.suptitle(base.replace('_',' '))
         figfile = os.path.join(figout_dir, base+'.png')
         fig.savefig(figfile)
