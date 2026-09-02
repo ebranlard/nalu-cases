@@ -60,6 +60,7 @@ SUFIX='_HR'
 case_dir_base = 'cases_polar3d_nawea'
 cases = CSVFile('airfoils_data/DB_NAWEA_configs_reduced.csv').toDataFrame()
 cases = CSVFile('airfoils_data/DB_NAWEA_configs_torque.csv').toDataFrame()
+cases = CSVFile('airfoils_data/DB_NAWEA_NACA.csv').toDataFrame()
 airfoil_names = cases['airfoil'].unique().tolist()
 
 chord=1
@@ -259,8 +260,22 @@ def create_case(alpha_mean, amplitude, nT_steady, re, mesh_file_2d, background_3
     info['re']        = re
 
     yml.save(yaml_file)
+    def sanitize_dict(d):
+      if isinstance(d, dict):
+        return {k: sanitize_dict(v) for k, v in d.items()}
+      elif isinstance(d, list):
+        return [sanitize_dict(v) for v in d]
+      elif isinstance(d, np.integer):
+        return int(d)
+      elif isinstance(d, np.floating):
+        return float(d)
+      elif isinstance(d, np.ndarray):
+        return d.tolist()
+      return d
+
+    info_clean = sanitize_dict(info)
     with open(yaml_file.replace('.yaml','.json'), "w") as f:
-        json.dump(info, f, indent=2)
+        json.dump(info_clean, f, indent=2)
     
     return yaml_file, batch_file
 
